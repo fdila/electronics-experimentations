@@ -111,6 +111,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	TIM6->SR = 0x0;
+	int button_flag = 0;
   while (1)
   {
     /* USER CODE END WHILE */
@@ -134,15 +135,22 @@ int main(void)
 	  
 		//if blue button in pressed
 		if(GPIOC->IDR & GPIO_IDR_ID13){
-			//if led2 is on
-			if(GPIOB->ODR & GPIO_ODR_OD7_Msk){
-				//turn off led2
-				GPIOB->ODR = GPIOB->ODR & ~GPIO_ODR_OD7_Msk;
-			}
-			else {
-				//turn on led2
-				GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD7_Msk;
-			}
+			
+			//check if button is not being continuosly pressed
+			if (button_flag == 0){
+				//if led2 is on
+				if(GPIOB->ODR & GPIO_ODR_OD7_Msk){
+					//turn off led2
+					GPIOB->ODR = GPIOB->ODR & ~GPIO_ODR_OD7_Msk;
+				}
+				else {
+					//turn on led2
+					GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD7_Msk;
+				}
+			}		
+			button_flag = 1;
+		} else {
+			button_flag = 0;
 		}
   }
   /* USER CODE END 3 */
