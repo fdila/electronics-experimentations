@@ -87,13 +87,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM6_Init();
+  /* USER CODE BEGIN 2 */
 	//enable counter
 	TIM6->CR1 |= TIM_CR1_CEN;
 	//enable interrupt
 	TIM6->DIER |= TIM_DIER_UIE;
-	
-	HAL_TIM_Base_Start_IT(&htim6);
-  /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
