@@ -23,6 +23,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "serial_tx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -202,21 +203,28 @@ void SysTick_Handler(void)
 /**
   * @brief This function handles USART3 global interrupt.
   */
+extern unsigned char tx_length;
+extern unsigned char tx_buffer[5];
+extern unsigned char tx_index;
+char carattere;
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-	if (USART3->SR & USART_SR_RXNE){
-		USART3->SR &= ~USART_SR_RXNE;
-	}  
-	
-	if (USART3->SR & USART_SR_TC){
-		USART3->SR &= ~USART_SR_TC;
-	}
 
+	USART3->CR1 |= USART_CR1_TXEIE;
+	
+	if (USART3->SR & USART_SR_TXE){
+		USART3->DR = tx_buffer[tx_index];
+		tx_fun();
+	}
+	
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
-
+	USART3->CR1 |= USART_CR1_TCIE;
+	USART3->SR = 0;
+	
+	
   /* USER CODE END USART3_IRQn 1 */
 }
 

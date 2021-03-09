@@ -24,7 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+//#include "serial_tx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +44,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,6 +61,7 @@ void SystemClock_Config(void);
   * @brief  The application entry point.
   * @retval int
   */
+
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -88,10 +88,10 @@ int main(void)
   MX_GPIO_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-	
+	USART3->CR1 |= USART_CR1_UE;
 	USART3->CR1 |= USART_CR1_TCIE;
 	USART3->CR1 |= USART_CR1_RXNEIE;
-	USART3->CR1 |= USART_CR1_UE;
+	
   /* USER CODE END 2 */
 
   /* Infinite loop */
