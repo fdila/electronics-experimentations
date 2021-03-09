@@ -211,11 +211,19 @@ void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
 
-	USART3->CR1 |= USART_CR1_TXEIE;
+	//USART3->CR1 |= USART_CR1_TXEIE;
 	
-	if (USART3->SR & USART_SR_TXE){
-		USART3->DR = tx_buffer[tx_index];
-		tx_fun();
+//	if (USART3->SR & USART_SR_TXE){
+//		if(tx_index < tx_length){
+//			//USART3->DR = tx_buffer[tx_index];
+//			tx_fun();
+//		} else {
+//			//USART3->CR1 &= ~USART_CR1_UE;
+//		}
+//	}
+	if (USART3->SR & USART_SR_RXNE){
+		carattere = USART3->DR;
+		USART3->DR = carattere;
 	}
 	
   /* USER CODE END USART3_IRQn 0 */
