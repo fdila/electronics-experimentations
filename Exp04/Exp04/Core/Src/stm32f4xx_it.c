@@ -204,7 +204,7 @@ void SysTick_Handler(void)
   * @brief This function handles USART3 global interrupt.
   */
 
-char carattere;
+
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
@@ -218,22 +218,13 @@ void USART3_IRQHandler(void)
 	}
 	
 	if (USART3->SR & USART_SR_RXNE){
-		carattere = USART3->DR;
-		USART3->DR = carattere;
-//		if (carattere == 'a'){
-//			GPIOB->BSRR = GPIO_BSRR_BS0;
-//		} else if (carattere == 'b'){
-//			GPIOB->BSRR = GPIO_BSRR_BS7;
-//		} else if (carattere == 'c'){
-//			GPIOB->BSRR = GPIO_BSRR_BS14;
-//		} else if (carattere == 'd'){
-//			GPIOB->BSRR = GPIO_BSRR_BR0;
-//		} else if (carattere == 'e'){
-//			GPIOB->BSRR = GPIO_BSRR_BR7;
-//		} else if (carattere == 'f'){
-//			GPIOB->BSRR = GPIO_BSRR_BR14;
-//		}
+		uint8_t comando;
+		comando = USART3->DR;
+		if(comando == 10) {
+			USART3->CR1 |= USART_CR1_TXEIE;
+		}
 	}
+	
 	
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);

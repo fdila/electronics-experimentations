@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-uint16_t tx_buffer[] = {10, 20, 30};
+uint16_t tx_buffer[] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
 uint8_t tx_index = 0;
 uint8_t tx_length = sizeof(tx_buffer);
 

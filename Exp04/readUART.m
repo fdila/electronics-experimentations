@@ -17,16 +17,20 @@ end
 fopen(obj1);
 
 flushinput(obj1);
-readasync(obj1);
+
+% Ask MCU to send data
+fwrite(obj1, 10, 'uint8');
+
+readasync(obj1, 20);
 
 test = 0;
 while (test == 0)
-    if(obj1.BytesAvailable == 6)
+    if(obj1.BytesAvailable == 20)
         test = 1;
     end
 end
 
-data = obj1;
+data = fread(obj1, 10, 'uint16');
 
 fclose(obj1);
 end
