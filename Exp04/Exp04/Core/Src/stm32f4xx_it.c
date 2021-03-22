@@ -203,9 +203,7 @@ void SysTick_Handler(void)
 /**
   * @brief This function handles USART3 global interrupt.
   */
-extern unsigned char tx_length;
-extern unsigned char tx_buffer[7];
-extern unsigned char tx_index;
+
 char carattere;
 void USART3_IRQHandler(void)
 {
@@ -213,8 +211,7 @@ void USART3_IRQHandler(void)
 	
 	if (USART3->SR & USART_SR_TXE){
 		if(tx_index < tx_length){
-			USART3->DR = tx_buffer[tx_index];
-			tx_fun();
+			USART3->DR = tx_fun();
 		} else {
 			USART3->CR1 &= ~USART_CR1_UE;
 		}
