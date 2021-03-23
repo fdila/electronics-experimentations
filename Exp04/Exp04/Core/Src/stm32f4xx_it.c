@@ -213,7 +213,8 @@ void USART3_IRQHandler(void)
 		if(tx_index < tx_length){
 			USART3->DR = tx_fun();
 		} else {
-			USART3->CR1 &= ~USART_CR1_UE;
+			tx_index = 0;
+			USART3->CR1 &= ~USART_CR1_TXEIE;
 		}
 	}
 	
@@ -229,10 +230,7 @@ void USART3_IRQHandler(void)
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
-	USART3->CR1 |= USART_CR1_TCIE;
-	USART3->SR = 0;
-	
-	
+
   /* USER CODE END USART3_IRQn 1 */
 }
 
