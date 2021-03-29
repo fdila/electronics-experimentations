@@ -24,7 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "adc_read.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,8 +44,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint16_t vrefint = 0;
 uint16_t adc_val = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,7 +56,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint32_t vrefcal = 0;
 /* USER CODE END 0 */
 
 /**
@@ -132,6 +132,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+		vrefcal = get_temp(adc_val, vrefint);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

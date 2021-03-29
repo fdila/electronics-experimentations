@@ -204,7 +204,7 @@ void SysTick_Handler(void)
   */
 extern uint16_t adc_val;
 uint8_t flag = 0;
-uint16_t vrefint = 0;
+extern uint16_t vrefint;
 void ADC_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC_IRQn 0 */
@@ -217,6 +217,8 @@ void ADC_IRQHandler(void)
 		flag = 0;
 		ADC1->CR2 |= ADC_CR2_SWSTART;
 	}
+	
+	
 	
 
 	
