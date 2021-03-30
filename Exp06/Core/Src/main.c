@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -44,8 +45,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint16_t vrefint = 0;
-volatile uint16_t adc_val = 0;
+uint16_t pa5_val;
+uint16_t vrefint;
+uint16_t ind;
+uint16_t buffer[2000];
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,7 +61,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-float temp = 0;
+
 /* USER CODE END 0 */
 
 /**
@@ -72,7 +77,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-		HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -88,26 +93,26 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC1_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 	
-	//Configure TIM6 and enable interrupt
-	TIM6->PSC= 20000;
-	TIM6->ARR=4200;
-	TIM6-> CR1 |= TIM_CR1_CEN;
-	TIM6->DIER |= TIM_DIER_UIE;
-
+	//Enable UART and RX interrupt
+	USART3->CR1 |= USART_CR1_UE;
+	USART3->CR1 |= USART_CR1_RXNEIE;
+	
 	//Enable temperature sensor and VrefINT
 	ADC->CCR |= ADC_CCR_TSVREFE;
 	
 	//Turn on ADC
 	ADC1->CR2 |= ADC_CR2_ADON;
 	
-	//Select 2 conversions for each sequence
-	ADC1->SQR1 |= ADC_SQR1_L_0;
-	
-	//Select channel 16 (temperature sensor)
+	//Select 1 conversions for each sequence
+	ADC1->SQR1 = 0;
+		
+	//Select channel 5 (PA5)
 	ADC1->SQR3 = 0x0;
-	ADC1->SQR3 |= ADC_SQR3_SQ1_4;
+	ADC1->SQR3 |= ADC_SQR3_SQ1_0;
+	ADC1->SQR3 |= ADC_SQR3_SQ1_2;
 
 	//Select channel 17 (vrefint)
 	ADC1->SQR3 |= ADC_SQR3_SQ2_4;
@@ -125,7 +130,6 @@ int main(void)
 	//Start conversion 
 	ADC1->CR2 |= ADC_CR2_SWSTART;
 
-	
   /* USER CODE END 2 */
 
   /* Infinite loop */

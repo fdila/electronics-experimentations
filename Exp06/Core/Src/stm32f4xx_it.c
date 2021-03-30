@@ -23,7 +23,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "adc_read.h"
+#include "serial_tx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,8 +58,13 @@
 
 /* External variables --------------------------------------------------------*/
 extern ADC_HandleTypeDef hadc1;
+extern UART_HandleTypeDef huart3;
 /* USER CODE BEGIN EV */
+extern uint16_t pa5_val;
+extern uint16_t vrefint;
 
+extern uint16_t ind;
+extern uint16_t buffer[2000];
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -203,34 +208,52 @@ void SysTick_Handler(void)
 /**
   * @brief This function handles ADC1, ADC2 and ADC3 global interrupts.
   */
-extern uint16_t adc_val;
-uint8_t flag = 0;
-extern uint16_t vrefint;
-extern float temp;
-
 void ADC_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC_IRQn 0 */
-	if (flag == 0){
-		adc_val = ADC1->DR;
-		flag = 1;
-	}
-	else{
-		vrefint = ADC1->DR;
-		flag = 0;
-		temp = get_temp(adc_val, vrefint);
+	if(ind <2000){
+		buffer[ind] = ADC1->DR;
+		ind++;
+		GPIOB->ODR = GPIOB->ODR & ~GPIO_ODR_OD7_Msk;
 		ADC1->CR2 |= ADC_CR2_SWSTART;
+	} else {
+		ind = 0;
+		GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD7_Msk;
 	}
-	
-	
-	
-
-	
   /* USER CODE END ADC_IRQn 0 */
   HAL_ADC_IRQHandler(&hadc1);
   /* USER CODE BEGIN ADC_IRQn 1 */
 
   /* USER CODE END ADC_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART3 global interrupt.
+  */
+void USART3_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART3_IRQn 0 */
+	if (USART3->SR & USART_SR_TXE){
+		uint8_t is_finished = tx_fun(buffer, 2000);
+		if (is_finished){
+			ADC1->CR2 |= ADC_CR2_SWSTART;
+		}
+	}
+			
+	
+	if (USART3->SR & USART_SR_RXNE){
+		uint8_t comando;
+		comando = USART3->DR;
+		if(comando == 10) {
+			USART3->CR1 |= USART_CR1_TXEIE;
+		}
+	}
+
+  /* USER CODE END USART3_IRQn 0 */
+  HAL_UART_IRQHandler(&huart3);
+  /* USER CODE BEGIN USART3_IRQn 1 */
+
+  /* USER CODE END USART3_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
