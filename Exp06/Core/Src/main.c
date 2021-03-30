@@ -99,6 +99,7 @@ int main(void)
 	//Enable UART and RX interrupt
 	USART3->CR1 |= USART_CR1_UE;
 	USART3->CR1 |= USART_CR1_RXNEIE;
+	USART3->CR1 &= ~USART_CR1_TCIE;
 	
 	//Enable temperature sensor and VrefINT
 	ADC->CCR |= ADC_CCR_TSVREFE;
@@ -123,12 +124,12 @@ int main(void)
 	
 	//Enable ADC interrupt
 	ADC1->CR1 |= ADC_CR1_EOCIE;
+	ADC1->CR1 |= ADC_CR1_OVRIE;
 	
 	//Turn on scan mode
 	ADC1->CR1 |= ADC_CR1_SCAN;
 	
 	//Start conversion 
-	ADC1->CR2 |= ADC_CR2_SWSTART;
 
   /* USER CODE END 2 */
 

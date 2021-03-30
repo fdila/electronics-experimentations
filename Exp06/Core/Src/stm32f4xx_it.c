@@ -218,8 +218,15 @@ void ADC_IRQHandler(void)
 		ADC1->CR2 |= ADC_CR2_SWSTART;
 	} else {
 		ind = 0;
+		uint8_t useless = ADC1->DR;
 		GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD7_Msk;
 	}
+	
+	if(ADC1->SR & ADC_SR_OVR){
+		ADC1->SR &= ~ADC_SR_OVR;
+		ADC1->CR2 |= ADC_CR2_SWSTART;
+	}
+	
   /* USER CODE END ADC_IRQn 0 */
   HAL_ADC_IRQHandler(&hadc1);
   /* USER CODE BEGIN ADC_IRQn 1 */
@@ -233,11 +240,9 @@ void ADC_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
+	uint8_t is_finished;
 	if (USART3->SR & USART_SR_TXE){
-		uint8_t is_finished = tx_fun(buffer, 2000);
-		if (is_finished){
-			ADC1->CR2 |= ADC_CR2_SWSTART;
-		}
+		is_finished = tx_fun(buffer, 2000);
 	}
 			
 	
@@ -246,13 +251,16 @@ void USART3_IRQHandler(void)
 		comando = USART3->DR;
 		if(comando == 10) {
 			USART3->CR1 |= USART_CR1_TXEIE;
+			ADC1->CR2 |= ADC_CR2_SWSTART;
 		}
 	}
 
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
-
+	if (is_finished){
+			//ADC1->CR2 |= ADC_CR2_SWSTART;
+	}
   /* USER CODE END USART3_IRQn 1 */
 }
 

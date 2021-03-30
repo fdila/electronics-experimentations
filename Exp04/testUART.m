@@ -1,11 +1,11 @@
 function data = testUART(size, type)
 
 function readSerial(src, ~)
-    data = read(src,2000,'uint16');
+    data = read(src,size,type);
 end
 
 device = serialport("COM4",115200);
-flush(device);
+%flush(device);
 data = [];
 
 if (strcmp(type,'uint16'))
@@ -16,7 +16,7 @@ elseif (strcmp(type, 'uint8'))
     bytes = 1*size;
 end
 
-configureCallback(device,"byte",4000,@readSerial);
+configureCallback(device,"byte",bytes,@readSerial);
 write(device,10,"uint8");
 
 while (numel(data) < size)
