@@ -43,7 +43,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -220,6 +219,7 @@ void ADC_IRQHandler(void)
 		ind = 0;
 		uint8_t useless = ADC1->DR;
 		GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD7_Msk;
+		USART3->CR1 |= USART_CR1_TXEIE;
 	}
 	
 	if(ADC1->SR & ADC_SR_OVR){
@@ -240,17 +240,15 @@ void ADC_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-	uint8_t is_finished;
 	if (USART3->SR & USART_SR_TXE){
-		is_finished = tx_fun(buffer, 2000);
+		tx_fun(buffer, 2000);
+		USART3->CR1 |= USART_CR1_TXEIE;
 	}
-			
-	
+				
 	if (USART3->SR & USART_SR_RXNE){
 		uint8_t comando;
 		comando = USART3->DR;
 		if(comando == 10) {
-			USART3->CR1 |= USART_CR1_TXEIE;
 			ADC1->CR2 |= ADC_CR2_SWSTART;
 		}
 	}
@@ -258,9 +256,6 @@ void USART3_IRQHandler(void)
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
-	if (is_finished){
-			//ADC1->CR2 |= ADC_CR2_SWSTART;
-	}
   /* USER CODE END USART3_IRQn 1 */
 }
 
