@@ -5,7 +5,7 @@ function readSerial(src, ~)
 end
 
 device = serialport("COM4",115200);
-%flush(device);
+flush(device);
 data = [];
 
 if (strcmp(type,'uint16'))
@@ -20,7 +20,7 @@ configureCallback(device,"byte",bytes,@readSerial);
 write(device,10,"uint8");
 
 while (numel(data) < size)
-    pause(0.01);
+     pause(0.01);
 end
 
 delete(device);

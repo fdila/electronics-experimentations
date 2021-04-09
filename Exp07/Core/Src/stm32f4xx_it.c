@@ -43,11 +43,11 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern uint16_t pa5_val;
-extern uint16_t vrefint;
+extern volatile uint16_t pa5_val;
+extern volatile uint16_t vrefint;
 
-extern uint16_t ind;
-extern uint16_t buffer[2000];
+extern volatile uint16_t adc_index;
+extern volatile uint16_t buffer[2000];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -208,26 +208,30 @@ void SysTick_Handler(void)
 /**
   * @brief This function handles ADC1, ADC2 and ADC3 global interrupts.
   */
+
 void ADC_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC_IRQn 0 */
-	if(ind < 2000){
-		buffer[ind] = ADC1->DR;
-		ind++;
-		GPIOB->ODR = GPIOB->ODR & ~GPIO_ODR_OD7_Msk;
-	} else {
-		ind = 0;
-		uint8_t useless = ADC1->DR;
-		GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD7_Msk;
-		USART3->CR1 |= USART_CR1_TXEIE;
-		
-		//disable timer
-		TIM2->CR1 &= ~TIM_CR1_CEN;
-	}
-	
-	if(ADC1->SR & ADC_SR_OVR){
-		ADC1->SR &= ~ADC_SR_OVR;
-		ADC1->CR2 |= ADC_CR2_SWSTART;
+	if(adc_index < 2000){
+		buffer[adc_index] = ADC1->DR;;
+		++adc_index;
+		if (adc_index == 2000){
+			
+			//disable timer
+			TIM2->CR1 &= ~TIM_CR1_CEN;
+			//disable adc
+			ADC1->CR2 &= ~ADC_CR2_ADON;
+			
+			//reset timer
+			TIM2->CNT = 0x0;
+			TIM2->SR = 0x0;
+			
+			//reset buffer index
+			adc_index = 0;
+			
+			//start transmission
+			USART3->CR1 |= USART_CR1_TXEIE;
+		}
 	}
 
   /* USER CODE END ADC_IRQn 0 */
@@ -243,24 +247,21 @@ void ADC_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-	if (USART3->SR & USART_SR_TXE){
-		tx_fun(buffer, 2000);
-	}
-				
+	uint8_t comando;	
 	if (USART3->SR & USART_SR_RXNE){
-		uint8_t comando;
 		comando = USART3->DR;
-		if(comando == 10) {
-			//enable timer
-			USART3->CR1 |= USART_CR1_TXEIE;
-			TIM2->CR1 |= TIM_CR1_CEN;
-		}
+	}else if ((USART3->SR & USART_SR_TXE)){
+		tx_fun(buffer, 2000);
 	}
 
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
-
+	if(comando == 10) {
+		//enable adc and timer
+		ADC1->CR2 |= ADC_CR2_ADON;
+		TIM2->CR1 |= TIM_CR1_CEN;
+	}
   /* USER CODE END USART3_IRQn 1 */
 }
 

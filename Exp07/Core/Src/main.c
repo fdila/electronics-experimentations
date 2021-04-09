@@ -46,10 +46,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t pa5_val;
-uint16_t vrefint;
-uint16_t ind;
-uint16_t buffer[2000];
+volatile uint16_t pa5_val;
+volatile uint16_t vrefint;
+volatile uint16_t adc_index;
+volatile uint16_t buffer[2000];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,7 +75,8 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  /* Reset 
+	of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -102,8 +103,6 @@ int main(void)
 	USART3->CR1 |= USART_CR1_RXNEIE;
 	USART3->CR1 &= ~USART_CR1_TCIE;
 	
-	
-	
 	//Turn on ADC
 	ADC1->CR2 |= ADC_CR2_ADON;
 	
@@ -120,7 +119,10 @@ int main(void)
 	
 	//Enable ADC interrupt
 	ADC1->CR1 |= ADC_CR1_EOCIE;
-	ADC1->CR1 |= ADC_CR1_OVRIE;
+	//ADC1->CR1 |= ADC_CR1_OVRIE;
+	
+	//set sampling cycles
+	ADC1->SMPR2 |= 0x2;
 	
 	//Turn on scan mode
 	ADC1->CR1 |= ADC_CR1_SCAN;

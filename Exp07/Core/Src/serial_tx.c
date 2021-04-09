@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include <main.h>
 
-uint16_t tx_index = 0;
+volatile uint16_t tx_index = 0;
 
-uint8_t tx_fun(uint16_t* tx_buffer, uint16_t tx_length){
+uint8_t tx_fun(volatile uint16_t* tx_buffer, uint16_t tx_length){
 	
 	tx_length = tx_length*2;
 	uint8_t* pointer = (uint8_t*) tx_buffer;
