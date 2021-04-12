@@ -121,9 +121,6 @@ int main(void)
 	ADC1->CR1 |= ADC_CR1_EOCIE;
 	//ADC1->CR1 |= ADC_CR1_OVRIE;
 	
-	//set sampling cycles
-	ADC1->SMPR2 |= 0x2;
-	
 	//Turn on scan mode
 	ADC1->CR1 |= ADC_CR1_SCAN;
 	
