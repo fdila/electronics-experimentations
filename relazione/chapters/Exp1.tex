@@ -1,0 +1,102 @@
+\chapter*{Esperimento 1}
+\addcontentsline{toc}{chapter}{Esperimento 1}
+
+\section*{Obiettivo}
+Far lampeggiare un led ad una frequenza stabilita e accendere/spegnere un altro led in base alla pressione di un bottone.
+
+\section*{Svolgimento}
+Per far lampeggiare un led ad una frequenza stabilita utilizziamo un timer. 
+Un timer è un componente hardware in grado di contare dei cicli di clock.
+
+Il timer ha un counter che viene incrementato ad ogni ciclo del clock diviso per un prescaler; quando questo counter raggiungere il valore di auto-reload viene impostato un flag (UIF).
+
+Sappiamo quindi che il flag UIF verrà settato ad una frequenza ricavabile dalla seguente formula:
+
+\begin{displaymath}
+ \text{Frequency} = \frac{CLK}{(PSC)*(ARR)}
+\end{displaymath}
+
+Sul reference manual troviamo che TIM6 è collegato al bus APB1. Andiamo a vedere qual è la frequenza del clock su questo bus e quindi calcoliamo PSC e ARR per avere una frequenza di 1 Hz.
+
+\begin{displaymath}
+ 1 \si{Hz} = \frac{84\si{MHz}}{(20000)*(4200)}
+\end{displaymath}
+
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{C}
+//set timer frequency
+TIM6->PSC = 20000;
+TIM6->ARR = 4200;
+//enable counter
+TIM6-> CR1 = TIM_CR1_CEN;
+\end{minted}
+
+Quando il registro CNT raggiungerà il valore di ARR verrà settato il bit UIF nel registro TIM\_SR.
+Andiamo quindi nel loop infinito a controllare questo bit. Ogni volta che troveremo questo bit acceso andremo ad accendere o spegnere il led e resetteremo il flag.
+
+Per controllare il led usiamo la periferica GPIO, utilizzandola come output. Useremo in particolare la periferica GPIOB. Nel registro ODR (output data register) troviamo 16 bit, corrispondenti allo stato (acceso/spento) di 16 pin.
+Il nostro led è collegato al pin 0. Andiamo quindi a controllare se il led è acceso (ovvero se il bit corrispondente è a 1) e lo impostiamo a 0 o viceversa.
+
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{C}
+while(1){
+//check timer flag, if timer got to arr
+    if(TIM6->SR == TIM_SR_UIF){
+	    //if led1 is on
+		if(GPIOB->ODR & GPIO_ODR_OD0_Msk){
+			//turn off led1
+			GPIOB->ODR = GPIOB->ODR & ~GPIO_ODR_OD0_Msk;
+		}
+		else {
+			//turn on led1
+			GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD0_Msk;
+		}
+		//reset timer flag
+		TIM6->SR = 0x0;
+	}
+}
+\end{minted}
+
+Per la gestione del bottone andiamo sempre ad utilizzare la periferica GPIO, questa volta come input.
+In questo caso andremo a controllare il registro IDR (input data register) che contiene lo stato dei 16 pin connessi alla periferica GPIOC, in particolare andremo a guardare lo stato del pin 13.
+Quando viene rilevata la pressione del bottone si cambia stato del secondo led.
+È stato utilizzato un flag per capire se il bottone fosse tenuto premuto in quanto la velocità dell'esecuzione del loop infinito è maggiore del tempo che una persona ci mette a premere il bottone, e ciò risultava in un comportamento inaspettato del led.
+
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{C}
+while(1){
+//if blue button in pressed
+	if(GPIOC->IDR & GPIO_IDR_ID13){
+		//check if button is not being continuosly pressed
+		if (button_flag == 0){
+			//if led2 is on
+			if(GPIOB->ODR & GPIO_ODR_OD7_Msk){
+				//turn off led2
+				GPIOB->ODR = GPIOB->ODR & ~GPIO_ODR_OD7_Msk;
+			}
+			else {
+				//turn on led2
+				GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD7_Msk;
+			}
+		}		
+		button_flag = 1;
+	} else {
+		button_flag = 0;
+	}
+}
+\end{minted}
