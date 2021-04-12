@@ -1,7 +1,94 @@
-\chapter*{Esperimento 3}
-\addcontentsline{toc}{chapter}{Esperimento 3}
+\chapter*{Esperimento 3: Trasmissione con UART}
+\addcontentsline{toc}{chapter}{Esperimento 3: Trasmissione con UART}
 
 \section*{Obiettivo}
 Trasmettere un array di numeri utilizzando la seriale e leggere questi numeri utilizzando MATLAB.
 
-\section*{Svolgimento}
+\section*{Svolgimento\footnote{Nella repository è il progetto Exp04}}
+Tramite CubeMX andiamo ad impostare la periferica USART3 per trasmettere e ricevere dati, impostiamo il baudrate a 9600 e abilitiamo l'interrupt associato.
+
+Nella fase di setup abilitiamo la seriale e abilitiamo anche l'interrupt associato alla ricezione di un byte.
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{C}
+//enable USART
+USART3->CR1 |= USART_CR1_UE;
+//enable RX interrupt
+USART3->CR1 |= USART_CR1_RXNEIE;
+\end{minted}
+
+Quando riceveremo un byte sulla seriale entreremo nell'interrupt.
+Controlliamo cosa ha sollevato l'interrupt andando a guardare il registro SR.
+Se siamo entrati nell'interrupt perchè è stato ricevuto un byte andiamo a controllare cosa abbiamo ricevuto.
+Se abbiamo ricevuto un 10 significa, per nostra convenzione, che MATLAB ha richiesto i dati. Andiamo quindi ad abilitare l'interrupt TXE, che viene sollevato ogni volta che il registro DR è vuoto.
+Ogni volta che viene sollevato questo interrupt, se abbiamo ancora dati da trasmettere, andiamo a chiamare la funzione tx\_fun(), che restituisce il byte che dobbiamo inviare.
+Mettiamo questo byte nel registro DR che fa quindi partire la trasmissione.
+
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{C}
+void USART3_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART3_IRQn 0 */
+	
+	if (USART3->SR & USART_SR_TXE){
+		if(tx_index < tx_length){
+			USART3->DR = tx_fun();
+		} else {
+			tx_index = 0;
+			USART3->CR1 &= ~USART_CR1_TXEIE;
+		}
+	}
+	
+	if (USART3->SR & USART_SR_RXNE){
+		uint8_t comando;
+		comando = USART3->DR;
+		if(comando == 10) {
+			USART3->CR1 |= USART_CR1_TXEIE;
+		}
+	}
+	
+	
+  /* USER CODE END USART3_IRQn 0 */
+  HAL_UART_IRQHandler(&huart3);
+  /* USER CODE BEGIN USART3_IRQn 1 */
+
+  /* USER CODE END USART3_IRQn 1 */
+}
+\end{minted}
+
+Abbiamo 3 variabili globali per permettere la trasmissione: un buffer, l'indice a cui ci troviamo nel buffer e la lunghezza in byte del buffer.
+Il buffer contiene interi senza segno a 16 bit, ma noi dobbiamo accedere ai singoli byte per poterli inviare sulla seriale.
+
+Andiamo quindi a creare un puntatore a 8 bit all'indirizzo del buffer, e usiamo questo puntatore per accedere ai byte. Ogni volta che viene chiamata la funzione andiamo a prendere dalla memoria un byte e aumentiamo l'indice. L'indice ci dice a che punto siamo nel buffer inteso come numero di byte.
+
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{C}
+uint16_t tx_buffer[] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+uint8_t tx_index = 0;
+uint8_t tx_length = sizeof(tx_buffer);
+
+uint8_t tx_fun(void){
+	
+	uint8_t* pointer = (uint8_t*) tx_buffer;
+	uint8_t to_tx = *(pointer + tx_index);
+	
+	if (tx_index < tx_length)
+		tx_index++;
+	
+	return to_tx;
+}
+\end{minted}
