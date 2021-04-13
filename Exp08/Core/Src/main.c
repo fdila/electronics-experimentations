@@ -99,8 +99,7 @@ int main(void)
   
 	/* Setup ADC */
 	
-	//Turn on ADC
-	ADC1->CR2 |= ADC_CR2_ADON;	
+	
 	//Select 1 conversions for each sequence
 	ADC1->SQR1 = 0;
 	//Select channel 5 (PA5)
@@ -121,6 +120,7 @@ int main(void)
 	//Enable UART and RX interrupt
 	USART3->CR1 |= USART_CR1_UE;
 	USART3->CR1 &= ~USART_CR1_TCIE;
+	USART3->CR1 |= USART_CR1_RXNEIE;
 	//Turn on DMA on transmission
 	USART3->CR3 |= USART_CR3_DMAT;
 	
@@ -157,13 +157,6 @@ int main(void)
 	DMA1_Stream3->CR &= ~DMA_SxCR_PSIZE_1;
 	//enable transfer complete interrupt
 	DMA1_Stream3->CR |= DMA_SxCR_TCIE;
-	
-
-	//Enable DMA2 
-	DMA2_Stream0->CR |= DMA_SxCR_EN;
-	//Enable TTM2 (start ADC conversion)
-	TIM2->CR1 |= TIM_CR1_CEN;
-	
 	
   /* USER CODE END 2 */
 

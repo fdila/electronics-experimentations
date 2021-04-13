@@ -210,8 +210,18 @@ void DMA1_Stream3_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
 	
+	//Disable DMA1 (UART)
+	DMA1_Stream3->CR &= ~DMA_SxCR_EN;
+	//Reset DMA1 SR
+	DMA1->LIFCR |= DMA_LIFCR_CTCIF3;
+	DMA1->LIFCR |= DMA_LIFCR_CHTIF3;
+	DMA1->LIFCR |= DMA_LIFCR_CTEIF3;
+	DMA1->LIFCR |= DMA_LIFCR_CFEIF3;
+	//Reset DMA1 data size
+	DMA1_Stream3->NDTR = SIZE*2;
+	
   /* USER CODE END DMA1_Stream3_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart3_tx);
+  //HAL_DMA_IRQHandler(&hdma_usart3_tx);
   /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
 
   /* USER CODE END DMA1_Stream3_IRQn 1 */
@@ -223,7 +233,7 @@ void DMA1_Stream3_IRQHandler(void)
 void ADC_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC_IRQn 0 */
-	//TODO gestire overrun
+	ADC1->SR &= ~ADC_SR_OVR;
   /* USER CODE END ADC_IRQn 0 */
   HAL_ADC_IRQHandler(&hadc1);
   /* USER CODE BEGIN ADC_IRQn 1 */
@@ -237,9 +247,29 @@ void ADC_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-  //if ((USART3->SR & USART_SR_TXE)){
-		//tx_fun(buffer, 2000);
-	//}
+	
+	uint8_t comando;	
+	if (USART3->SR & USART_SR_RXNE){
+		comando = USART3->DR;
+		if(comando == 10) {
+			//Reset DMA2 SR
+			DMA2->LIFCR |= DMA_LIFCR_CTCIF0;
+			DMA2->LIFCR |= DMA_LIFCR_CHTIF0;
+			DMA2->LIFCR |= DMA_LIFCR_CTEIF0;
+			//reset ADC SR
+			ADC1->SR = 0x0;
+			//Set number of elements
+			DMA2_Stream0->NDTR = SIZE;
+			//enable transfer complete interrupt
+			DMA2_Stream0->CR |= DMA_SxCR_TCIE;
+			//Enable DMA2 
+			DMA2_Stream0->CR |= DMA_SxCR_EN;
+			//Turn on ADC
+			ADC1->CR2 |= ADC_CR2_ADON;	
+			//Enable TTM2 (start ADC conversion)
+			TIM2->CR1 |= TIM_CR1_CEN;
+		}
+	}
 	
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
@@ -254,18 +284,26 @@ void USART3_IRQHandler(void)
 void DMA2_Stream0_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
-
+	
+	//disable DMA2
+	DMA2_Stream0->CR &= ~DMA_SxCR_EN;
 	//stop TIM2
 	TIM2->CR1 &= ~TIM_CR1_CEN;
+	//reset timer
+	TIM2->CNT = 0x0;
+	TIM2->SR = 0x0;
 	
-	//Clear TC bit
+	//disable ADC
+	ADC1->CR2 &= ~ADC_CR2_ADON;
+	
+	//Clear USART TC bit
 	USART3->SR &= ~USART_SR_TC;
 	
 	//enable DMA1 (UART)
 	DMA1_Stream3->CR |= DMA_SxCR_EN;
 	
   /* USER CODE END DMA2_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
+  //HAL_DMA_IRQHandler(&hdma_adc1);
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
 
   /* USER CODE END DMA2_Stream0_IRQn 1 */
