@@ -108,9 +108,8 @@ int main(void)
 	ADC1->SQR3 |= ADC_SQR3_SQ1_2;
 	//Set EOC flag at the end of each conversion
 	ADC1->CR2 |= ADC_CR2_EOCS;
-	//Enable ADC interrupt
-	//ADC1->CR1 |= ADC_CR1_EOCIE;
-	//ADC1->CR1 |= ADC_CR1_OVRIE;
+	//Enable ADC overrun interrupt
+	ADC1->CR1 |= ADC_CR1_OVRIE;
 	//Turn on scan mode
 	ADC1->CR1 |= ADC_CR1_SCAN;
 	
@@ -146,7 +145,7 @@ int main(void)
 	TIM2->CR1 |= TIM_CR1_CEN;
 	
 	//setup DMA1-UART
-
+	
   /* USER CODE END 2 */
 
   /* Infinite loop */

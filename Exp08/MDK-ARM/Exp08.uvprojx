@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F429xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Core/Inc; ../Drivers/STM32F4xx_HAL_Driver/Inc; ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy; ../Drivers/CMSIS/Device/ST/STM32F4xx/Include; ../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -394,6 +394,16 @@
           <GroupName>Application/User/Core</GroupName>
           <Files>
             <File>
+              <FileName>serial_tx.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Core\Inc\serial_tx.h</FilePath>
+            </File>
+            <File>
+              <FileName>serial_tx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\serial_tx.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/main.c</FilePath>
@@ -432,16 +442,6 @@
               <FileName>stm32f4xx_hal_msp.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f4xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>serial_tx.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Core\Inc\serial_tx.h</FilePath>
-            </File>
-            <File>
-              <FileName>serial_tx.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\serial_tx.c</FilePath>
             </File>
           </Files>
         </Group>
