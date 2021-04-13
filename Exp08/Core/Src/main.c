@@ -121,6 +121,7 @@ int main(void)
 	//Enable UART and RX interrupt
 	USART3->CR1 |= USART_CR1_UE;
 	USART3->CR1 &= ~USART_CR1_TCIE;
+	//Turn on DMA on transmission
 	USART3->CR3 |= USART_CR3_DMAT;
 	
 	
