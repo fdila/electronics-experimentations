@@ -97,6 +97,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   
+	/* Setup ADC */
 	
 	//Turn on ADC
 	ADC1->CR2 |= ADC_CR2_ADON;	
@@ -112,22 +113,21 @@ int main(void)
 	ADC1->CR1 |= ADC_CR1_OVRIE;
 	//Turn on scan mode
 	ADC1->CR1 |= ADC_CR1_SCAN;
-	
-	//Turn on DMA mode
+	//Turn on DMA mode!!
 	ADC1->CR2 |= ADC_CR2_DMA;
 	
+	/* Setup UART */
+	
 	//Enable UART and RX interrupt
-	USART3->SR = 0x0;
 	USART3->CR1 |= USART_CR1_UE;
-	//USART3->CR1 |= USART_CR1_RXNEIE;
 	USART3->CR1 &= ~USART_CR1_TCIE;
+	USART3->CR3 |= USART_CR3_DMAT;
 	
 	
 	/* setup DMA2 stream 0 - ADC */
-		
 	//set number of elements
 	DMA2_Stream0->NDTR = SIZE;
-	//set source memory address
+	//set source peripheral address
 	DMA2_Stream0->PAR = (uint32_t) &ADC1->DR;
 	//set destination memory address
 	DMA2_Stream0->M0AR = (uint32_t) buffer;
@@ -139,12 +139,30 @@ int main(void)
 	DMA2_Stream0->CR |= DMA_SxCR_TCIE;
 	
 	
-	//enable DMA
+  /* Setup DMA1 UART */
+	//Disable DMA
+	DMA1_Stream3->CR &= ~DMA_SxCR_EN;
+	//set number of elements (multiply by 2 because we send bytes)
+	DMA1_Stream3->NDTR = SIZE*2;
+	//set source memory address
+	DMA1_Stream3->M0AR = (uint32_t) buffer;
+	//set destination peripheral address
+	DMA1_Stream3->PAR = (uint32_t) &USART3->DR;
+	//set byte memory data size
+	DMA1_Stream3->CR &= ~DMA_SxCR_MSIZE_0;
+	DMA1_Stream3->CR &= ~DMA_SxCR_MSIZE_1;
+	//set byte peripheral size
+	DMA1_Stream3->CR &= ~DMA_SxCR_PSIZE_0;
+	DMA1_Stream3->CR &= ~DMA_SxCR_PSIZE_1;
+	//enable transfer complete interrupt
+	DMA1_Stream3->CR |= DMA_SxCR_TCIE;
+	
+
+	//Enable DMA2 
 	DMA2_Stream0->CR |= DMA_SxCR_EN;
-	//Enable TTM2
+	//Enable TTM2 (start ADC conversion)
 	TIM2->CR1 |= TIM_CR1_CEN;
 	
-	//setup DMA1-UART
 	
   /* USER CODE END 2 */
 

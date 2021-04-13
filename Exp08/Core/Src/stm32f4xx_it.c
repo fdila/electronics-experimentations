@@ -223,7 +223,7 @@ void DMA1_Stream3_IRQHandler(void)
 void ADC_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC_IRQn 0 */
-
+	//TODO gestire overrun
   /* USER CODE END ADC_IRQn 0 */
   HAL_ADC_IRQHandler(&hadc1);
   /* USER CODE BEGIN ADC_IRQn 1 */
@@ -237,9 +237,10 @@ void ADC_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-  if ((USART3->SR & USART_SR_TXE)){
-		tx_fun(buffer, 2000);
-	}
+  //if ((USART3->SR & USART_SR_TXE)){
+		//tx_fun(buffer, 2000);
+	//}
+	
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */
@@ -253,7 +254,16 @@ void USART3_IRQHandler(void)
 void DMA2_Stream0_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
-  USART3->CR1 |= USART_CR1_TXEIE;
+
+	//stop TIM2
+	TIM2->CR1 &= ~TIM_CR1_CEN;
+	
+	//Clear TC bit
+	USART3->SR &= ~USART_SR_TC;
+	
+	//enable DMA1 (UART)
+	DMA1_Stream3->CR |= DMA_SxCR_EN;
+	
   /* USER CODE END DMA2_Stream0_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_adc1);
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
