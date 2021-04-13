@@ -37,6 +37,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define SIZE 2000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,7 +48,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+volatile uint16_t buffer[SIZE];
+volatile uint16_t buffer_index;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,22 +109,44 @@ int main(void)
 	//Set EOC flag at the end of each conversion
 	ADC1->CR2 |= ADC_CR2_EOCS;
 	//Enable ADC interrupt
-	ADC1->CR1 |= ADC_CR1_EOCIE;
+	//ADC1->CR1 |= ADC_CR1_EOCIE;
 	//ADC1->CR1 |= ADC_CR1_OVRIE;
 	//Turn on scan mode
 	ADC1->CR1 |= ADC_CR1_SCAN;
 	
+	//Turn on DMA mode
+	ADC1->CR2 |= ADC_CR2_DMA;
+	
 	//Enable UART and RX interrupt
 	USART3->SR = 0x0;
 	USART3->CR1 |= USART_CR1_UE;
-	USART3->CR1 |= USART_CR1_RXNEIE;
+	//USART3->CR1 |= USART_CR1_RXNEIE;
 	USART3->CR1 &= ~USART_CR1_TCIE;
 	
 	
-	//setup DMA-ADC
+	/* setup DMA2 stream 0 - ADC */
+		
+	//set number of elements
+	DMA2_Stream0->NDTR = SIZE;
+	//set source memory address
+	DMA2_Stream0->PAR = (uint32_t) &ADC1->DR;
+	//set destination memory address
+	DMA2_Stream0->M0AR = (uint32_t) buffer;
+	//set half word memory data size
+	DMA2_Stream0->CR |= DMA_SxCR_MSIZE_0;
+	//set half word peripheral size
+	DMA2_Stream0->CR |= DMA_SxCR_PSIZE_0;
+	//enable transfer complete interrupt
+	DMA2_Stream0->CR |= DMA_SxCR_TCIE;
 	
-	//setup DMA-UART
 	
+	//enable DMA
+	DMA2_Stream0->CR |= DMA_SxCR_EN;
+	//Enable TTM2
+	TIM2->CR1 |= TIM_CR1_CEN;
+	
+	//setup DMA1-UART
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
