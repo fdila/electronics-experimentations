@@ -251,14 +251,9 @@ void USART3_IRQHandler(void)
   /* USER CODE BEGIN USART3_IRQn 0 */
 	
 	uint8_t comando;	
-	//if (USART3->SR & USART_SR_RXNE)
-	if(1){
+	if (USART3->SR & USART_SR_RXNE){
 		comando = USART3->DR;
 		if(comando == 10) {
-			//Reset DMA2 SR
-			//DMA2->LIFCR |= DMA_LIFCR_CTCIF0;
-			//DMA2->LIFCR |= DMA_LIFCR_CHTIF0;
-			//DMA2->LIFCR |= DMA_LIFCR_CTEIF0;
 			//reset ADC SR
 			ADC1->SR = 0x0;
 			//Set number of elements
@@ -267,9 +262,8 @@ void USART3_IRQHandler(void)
 			DMA2_Stream0->CR |= DMA_SxCR_TCIE;
 			//Enable DMA2 
 			DMA2_Stream0->CR |= DMA_SxCR_EN;
+			//Enable ADC DMA bit
 			ADC1->CR2 |= ADC_CR2_DMA;
-			//Turn on ADC
-			ADC1->CR2 |= ADC_CR2_ADON;	
 			//Enable TTM2 (start ADC conversion)
 			TIM2->CR1 |= TIM_CR1_CEN;
 		}
@@ -289,11 +283,8 @@ void DMA2_Stream0_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
 	
-	//disable ADC
-	ADC1->CR2 &= ~ADC_CR2_ADON;
+	//disable ADC DMA bit
 	ADC1->CR2 &= ~ADC_CR2_DMA;
-	
-	uint16_t boh = ADC1->DR;
 	
 	//disable DMA2
 	DMA2_Stream0->CR &= ~DMA_SxCR_EN;
