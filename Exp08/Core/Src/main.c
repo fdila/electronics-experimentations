@@ -158,6 +158,9 @@ int main(void)
 	//enable transfer complete interrupt
 	DMA1_Stream3->CR |= DMA_SxCR_TCIE;
 	
+	//Turn on ADC
+	ADC1->CR2 |= ADC_CR2_ADON;
+	
   /* USER CODE END 2 */
 
   /* Infinite loop */
