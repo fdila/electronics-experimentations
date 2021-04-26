@@ -111,7 +111,7 @@ int main(void)
 	//Set EOC flag at the end of each conversion
 	ADC1->CR2 |= ADC_CR2_EOCS;
 	//Enable ADC overrun interrupt
-	//ADC1->CR1 |= ADC_CR1_OVRIE;
+	ADC1->CR1 &= ~ADC_CR1_OVRIE;
 	
 	ADC1->CR1 |= ADC_CR1_EOCIE;
 	
@@ -143,7 +143,7 @@ int main(void)
 	//set half word peripheral size
 	DMA2_Stream0->CR |= DMA_SxCR_PSIZE_0;
 	//enable transfer complete interrupt
-	DMA2_Stream0->CR |= DMA_SxCR_TCIE;
+	//DMA2_Stream0->CR |= DMA_SxCR_TCIE;
 	//enable circ mode
 	DMA2_Stream0->CR |= DMA_SxCR_CIRC;
 	
