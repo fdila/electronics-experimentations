@@ -50,7 +50,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint16_t buffer[SIZE];
+volatile uint16_t buffer[SIZE+1];
 volatile uint16_t buffer_index;
 /* USER CODE END PV */
 
@@ -113,7 +113,7 @@ int main(void)
 	//Enable ADC overrun interrupt
 	ADC1->CR1 &= ~ADC_CR1_OVRIE;
 	
-	ADC1->CR1 |= ADC_CR1_EOCIE;
+	ADC1->CR1 &= ~ADC_CR1_EOCIE;
 	
 	//Turn on scan mode
 	ADC1->CR1 |= ADC_CR1_SCAN;
@@ -151,7 +151,7 @@ int main(void)
 	//Disable DMA
 	DMA1_Stream3->CR &= ~DMA_SxCR_EN;
 	//set number of elements (multiply by 2 because we send bytes)
-	DMA1_Stream3->NDTR = SIZE*2;
+	DMA1_Stream3->NDTR = SIZE*2 + 2;
 	//set source memory address
 	DMA1_Stream3->M0AR = (uint32_t) buffer;
 	//set destination peripheral address
@@ -168,6 +168,18 @@ int main(void)
 	
 	//Turn on ADC
 	ADC1->CR2 |= ADC_CR2_ADON;
+	
+	//reset ADC SR
+	ADC1->SR = 0x0;
+	//Set number of elements
+	DMA2_Stream0->NDTR = SIZE;
+	//Enable DMA2 
+	DMA2_Stream0->CR |= DMA_SxCR_EN;
+	//Enable ADC DMA bit
+	ADC1->CR2 |= ADC_CR2_DMA;
+	ADC1->CR2 |= ADC_CR2_DDS;
+	//Enable TTM2 (start ADC conversion)
+	TIM2->CR1 |= TIM_CR1_CEN;
 
   /* USER CODE END 2 */
 

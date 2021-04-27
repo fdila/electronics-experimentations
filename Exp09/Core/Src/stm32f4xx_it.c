@@ -33,6 +33,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define SIZE 2000
+#define PRETRIGGER 200
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -43,8 +44,13 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 volatile uint8_t data_ok = 0;
+volatile uint8_t trigger_ok = 0;
+volatile uint16_t elements_left = 0;
+
 volatile uint16_t trigger_buffer[5];
 volatile uint8_t trigger_index = 0;
+
+volatile uint16_t trigger_buffer_index = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,7 +69,7 @@ extern ADC_HandleTypeDef hadc1;
 extern DMA_HandleTypeDef hdma_usart3_tx;
 extern UART_HandleTypeDef huart3;
 /* USER CODE BEGIN EV */
-extern volatile uint16_t buffer[SIZE];
+extern volatile uint16_t buffer[SIZE+1];
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -220,7 +226,7 @@ void DMA1_Stream3_IRQHandler(void)
 	DMA1->LIFCR |= DMA_LIFCR_CFEIF3;
 	
 	//Reset DMA1 data size
-	DMA1_Stream3->NDTR = SIZE*2;
+	DMA1_Stream3->NDTR = SIZE*2 + 2;
   /* USER CODE END DMA1_Stream3_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart3_tx);
   /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
@@ -235,6 +241,7 @@ void ADC_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC_IRQn 0 */
 	if(ADC1->DR > 800){
+		
 		//disable tim2
 		TIM2->CR1 &= ~TIM_CR1_CEN;
 		//reset timer
@@ -248,8 +255,29 @@ void ADC_IRQHandler(void)
 		//disable DMA2
 		DMA2_Stream0->CR &= ~DMA_SxCR_EN;
 		
+		uint16_t new_ndtr;
+		
+		trigger_buffer_index = SIZE - DMA2_Stream0->NDTR;
+		
+		if (trigger_buffer_index > PRETRIGGER){
+			//continua ad acquisire fino alla fine
+			// e acquisisci altri (SIZE - trigger_buffer_index - PRETRIGGER) campioni
+			
+			elements_left = (SIZE - PRETRIGGER - trigger_buffer_index);
+			new_ndtr = DMA2_Stream0->NDTR;
+			
+			//indice da mandare a matlab per inizio dei dati da plottare
+			buffer[SIZE] = trigger_buffer_index - PRETRIGGER;
+			trigger_ok = 1;
+			
+		} else{
+			new_ndtr = SIZE - PRETRIGGER;			
+			buffer[SIZE] = SIZE - (PRETRIGGER - trigger_buffer_index);
+			data_ok = 1;
+		}
+		
 		//Set number of elements
-		DMA2_Stream0->NDTR = SIZE;
+		DMA2_Stream0->NDTR = new_ndtr;
 		//disable transfer complete interrupt
 		DMA2_Stream0->CR &= ~DMA_SxCR_TCIE;
 		//Reset DMA2 SR
@@ -269,9 +297,6 @@ void ADC_IRQHandler(void)
 		
 		//reset ADC SR
 		ADC1->SR = 0x0;
-
-		//next time we fill the buffer we begin transmit
-		data_ok = 1;
 		
 		//turn on tim2
 		TIM2->CR1 |= TIM_CR1_CEN;
@@ -294,22 +319,8 @@ void USART3_IRQHandler(void)
 	if (USART3->SR & USART_SR_RXNE){
 		comando = USART3->DR;
 		if(comando == 10) {
-			//reset ADC SR
-			ADC1->SR = 0x0;
 			//enable adc interrupt
 			ADC1->CR1 |= ADC_CR1_EOCIE;
-			ADC1->CR2 &= ~ADC_CR2_EOCS;
-			//Set number of elements
-			DMA2_Stream0->NDTR = SIZE;
-			//enable transfer complete interrupt
-			//DMA2_Stream0->CR |= DMA_SxCR_TCIE;
-			//Enable DMA2 
-			DMA2_Stream0->CR |= DMA_SxCR_EN;
-			//Enable ADC DMA bit
-			ADC1->CR2 |= ADC_CR2_DMA;
-			ADC1->CR2 |= ADC_CR2_DDS;
-			//Enable TTM2 (start ADC conversion)
-			TIM2->CR1 |= TIM_CR1_CEN;
 		}
 	}
 
@@ -337,11 +348,50 @@ void DMA2_Stream0_IRQHandler(void)
 	ADC1->CR2 &= ~ADC_CR2_DDS;
 	ADC1->CR2 &= ~ADC_CR2_DMA;
 	
-	
-	if(data_ok){
+	if(trigger_ok){
+		
+		//disable DMA2
+		DMA2_Stream0->CR &= ~DMA_SxCR_EN;
+		
+		//disable transfer complete interrupt
+		DMA2_Stream0->CR &= ~DMA_SxCR_TCIE;
+		
+		//Reset DMA2 SR
+		DMA2->LIFCR |= DMA_LIFCR_CTCIF0;
+		DMA2->LIFCR |= DMA_LIFCR_CHTIF0;
+		DMA2->LIFCR |= DMA_LIFCR_CTEIF0;
+		
+		//get the elements left
+		DMA2_Stream0->NDTR = elements_left;
+		
+		//disable transfer complete interrupt
+		DMA2_Stream0->CR &= ~DMA_SxCR_TCIE;
+		//Reset DMA2 SR
+		DMA2->LIFCR |= DMA_LIFCR_CTCIF0;
+		DMA2->LIFCR |= DMA_LIFCR_CHTIF0;
+		DMA2->LIFCR |= DMA_LIFCR_CTEIF0;
+		
+		DMA2_Stream0->CR |= DMA_SxCR_TCIE;
+		//enable DMA2
+		DMA2_Stream0->CR |= DMA_SxCR_EN;
+		
+		//turn on adc dma bit
+		ADC1->CR2 |= ADC_CR2_DMA;
+		ADC1->CR2 |= ADC_CR2_DDS;
+		
+		//reset ADC SR
+		ADC1->SR = 0x0;
+		
+		//turn on tim2
+		TIM2->CR1 |= TIM_CR1_CEN;
+		
+		data_ok = 1;
+		trigger_ok = 0;
+			
+	} else if(data_ok){
 		
 		data_ok = 0;
-		
+		trigger_ok = 0;
 		//disable DMA2
 		DMA2_Stream0->CR &= ~DMA_SxCR_EN;
 		
@@ -355,16 +405,23 @@ void DMA2_Stream0_IRQHandler(void)
 	
 		//enable DMA1 (UART)
 		DMA1_Stream3->CR |= DMA_SxCR_EN;
-		
 	} else {
+
 		//Reset DMA2 SR
 		DMA2->LIFCR |= DMA_LIFCR_CTCIF0;
 		DMA2->LIFCR |= DMA_LIFCR_CHTIF0;
 		DMA2->LIFCR |= DMA_LIFCR_CTEIF0;
-	
+		
+		DMA2_Stream0->CR |= DMA_SxCR_TCIE;
+		//enable DMA2
+		DMA2_Stream0->CR |= DMA_SxCR_EN;
+		
 		//turn on adc dma bit
 		ADC1->CR2 |= ADC_CR2_DMA;
 		ADC1->CR2 |= ADC_CR2_DDS;
+		
+		//reset ADC SR
+		ADC1->SR = 0x0;
 		
 		//turn on tim2
 		TIM2->CR1 |= TIM_CR1_CEN;
