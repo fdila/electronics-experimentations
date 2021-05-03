@@ -227,6 +227,22 @@ void DMA1_Stream3_IRQHandler(void)
 	
 	//Reset DMA1 data size
 	DMA1_Stream3->NDTR = SIZE*2 + 2;
+	
+	//re-enable ADC DMA
+	//reset ADC SR
+	ADC1->SR = 0x0;
+	//Set number of elements
+	DMA2_Stream0->NDTR = SIZE;
+	DMA2_Stream0->M0AR = (uint32_t) buffer;
+	//Enable DMA2 
+	DMA2_Stream0->CR |= DMA_SxCR_EN;	
+	//Enable ADC DMA bit
+	ADC1->CR2 |= ADC_CR2_DMA;
+	ADC1->CR2 |= ADC_CR2_DDS;
+	//Enable TTM2 (start ADC conversion)
+	TIM2->CR1 |= TIM_CR1_CEN;
+	
+	
   /* USER CODE END DMA1_Stream3_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart3_tx);
   /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
@@ -271,7 +287,7 @@ void ADC_IRQHandler(void)
 			trigger_ok = 1;
 			
 		} else{
-			DMA1_Stream3->M0AR = (uint32_t) buffer[trigger_buffer_index];
+			DMA2_Stream0->M0AR = (uint32_t) buffer[trigger_buffer_index];
 			new_ndtr = SIZE - PRETRIGGER;			
 			buffer[SIZE] = SIZE - (PRETRIGGER - trigger_buffer_index);
 			data_ok = 1;
