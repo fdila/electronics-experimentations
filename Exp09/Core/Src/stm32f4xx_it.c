@@ -271,6 +271,7 @@ void ADC_IRQHandler(void)
 			trigger_ok = 1;
 			
 		} else{
+			DMA1_Stream3->M0AR = (uint32_t) buffer[trigger_buffer_index];
 			new_ndtr = SIZE - PRETRIGGER;			
 			buffer[SIZE] = SIZE - (PRETRIGGER - trigger_buffer_index);
 			data_ok = 1;
@@ -399,6 +400,8 @@ void DMA2_Stream0_IRQHandler(void)
 		DMA2->LIFCR |= DMA_LIFCR_CTCIF0;
 		DMA2->LIFCR |= DMA_LIFCR_CHTIF0;
 		DMA2->LIFCR |= DMA_LIFCR_CTEIF0;
+		
+		DMA1_Stream3->M0AR = (uint32_t) buffer;
 		
 		//Clear USART TC bit
 		USART3->SR &= ~USART_SR_TC;
