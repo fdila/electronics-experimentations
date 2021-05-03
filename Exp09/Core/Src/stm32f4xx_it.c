@@ -234,6 +234,8 @@ void DMA1_Stream3_IRQHandler(void)
 	//Set number of elements
 	DMA2_Stream0->NDTR = SIZE;
 	DMA2_Stream0->M0AR = (uint32_t) buffer;
+	//disable transfer complete interrupt
+	DMA2_Stream0->CR &= ~DMA_SxCR_TCIE;
 	//Enable DMA2 
 	DMA2_Stream0->CR |= DMA_SxCR_EN;	
 	//Enable ADC DMA bit
