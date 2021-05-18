@@ -144,6 +144,8 @@ int main(void)
 	DMA2_Stream0->CR |= DMA_SxCR_PSIZE_0;
 	//enable transfer complete interrupt
 	//DMA2_Stream0->CR |= DMA_SxCR_TCIE;
+	//disable transfer complete interrupt
+	DMA2_Stream0->CR &= ~DMA_SxCR_TCIE;
 	//enable circ mode
 	DMA2_Stream0->CR |= DMA_SxCR_CIRC;
 	
