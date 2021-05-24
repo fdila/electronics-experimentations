@@ -291,6 +291,9 @@ void ADC_IRQHandler(void)
 		if (DMA2_Stream0->NDTR == stop_ndtr){
 			//stop ADC and DMA
 			
+			//disable adc interrupt
+			ADC1->CR1 &= ~ADC_CR1_EOCIE;
+			
 			//disable tim2
 			TIM2->CR1 &= ~TIM_CR1_CEN;
 			//reset timer
@@ -313,6 +316,10 @@ void ADC_IRQHandler(void)
 			USART3->SR &= ~USART_SR_TC;
 			//enable DMA1 (UART)
 			DMA1_Stream3->CR |= DMA_SxCR_EN;
+			
+			stop_ndtr = 0;
+			data_ok = 0;
+			trigger_val = 0;
 			
 		}
 	}
