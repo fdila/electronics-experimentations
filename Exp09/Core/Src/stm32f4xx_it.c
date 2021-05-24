@@ -290,6 +290,7 @@ void ADC_IRQHandler(void)
 	} else if (data_ok == 1){
 		if (DMA2_Stream0->NDTR == stop_ndtr){
 			//stop ADC and DMA
+			
 			//disable tim2
 			TIM2->CR1 &= ~TIM_CR1_CEN;
 			//reset timer
