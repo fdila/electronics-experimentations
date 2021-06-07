@@ -1,0 +1,6 @@
+invertente guadagno 1: r34 = 2k, r30 = 2k
+
+Guadagno in funzione di frequenza.
+
+Configurazione non invertente, gain 7.66666
+

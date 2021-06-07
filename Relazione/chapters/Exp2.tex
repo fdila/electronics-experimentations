@@ -1,11 +1,12 @@
-\chapter*{Esperimento 2: Timer e LED con interrupt}
-\addcontentsline{toc}{chapter}{Esperimento 2: Timer e LED con interrupt}
+\chapter{Timer e LED con interrupt}
 
 \section*{Obiettivo}
 Far lampeggiare un led ad una frequenza stabilita e accendere/spegnere un altro led in base alla pressione di un bottone utilizzando gli interrupt.
 
-\section*{Svolgimento\footnote{Nella repository è il progetto Exp02}}
-Tramite CubeMX impostiamo il TIM6 con i valori calcolati nell'esperimento precedente per avere una frequenza di 1Hz.
+\section*{Svolgimento\footnote{\href{https://github.com/fdila/electronics-experimentation/tree/main/Exp02}{Il codice è disponibile nella repository, cartella Exp02}}}
+
+
+Tramite CubeMX impostiamo il TIM6 con i valori calcolati nell'esperimento precedente per avere una frequenza di 1Hz e abilitiamo l'interrupt associato.
 Dopo di che abilitiamo l'interrupt del TIM6.
 
 \begin{minted}
@@ -41,16 +42,13 @@ void TIM6_DAC_IRQHandler(void)
 				GPIOB->ODR = GPIOB->ODR | GPIO_ODR_OD0_Msk;
 	}
   /* USER CODE END TIM6_DAC_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim6);
-  /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
-
-  /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 \end{minted}
 
 Usiamo poi la periferica EXTI per gestire la pressione del bottone.
-Il bottone è collegato al pin PC13: selezioniamo la modalità EXTI13 dopo aver cliccato sul pin, e nel menù GPIO abilitiamo l'interrupt associato.
-Routine di interrupt EXTI andiamo ad accendere e spegnere il secondo led.
+Il bottone è collegato al pin PC13: da STM32CubeMX selezioniamo la modalità EXTI13 dopo aver cliccato sul pin, e nel menù GPIO abilitiamo l'interrupt associato.
+In questo modo quando premeremo il bottone verrà generato un interrupt.
+Nella routine di interrupt EXTI andiamo ad accendere e spegnere il secondo led.
 \begin{minted}
 [
 frame=lines,

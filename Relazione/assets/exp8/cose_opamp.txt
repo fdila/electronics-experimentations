@@ -1,0 +1,7 @@
+Guadagno_1: R34 = 2k
+
+Guadagno_2: R34 = 2k, R33 = 2k
+
+Guadagno_4.9: R34 = 2k, R33 = 510
+
+Guadagno_7.6: R34 = 2k, R33 = 300

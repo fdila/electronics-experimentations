@@ -1,28 +1,16 @@
-\chapter*{Esperimento 6: Lettura e plot di un'onda con ADC e DMA}
-\addcontentsline{toc}{chapter}{Esperimento 6: Lettura e plot di un'onda con ADC e DMA}
+\chapter{Lettura e plot di un'onda con trigger}
+\label{chap:adc_trigger}
 
 \section*{Obiettivo}
-Leggere un onda generata tramite un generatore di funzioni, trasmettere i valori a MATLAB e plottarli usando il DMA sia per l'ADC che per la seriale.
+Leggere un onda generata tramite un generatore di funzioni, trasmettere i valori a MATLAB e plottarli usando il DMA sia per l'ADC che per la seriale. Aggiungiamo inoltre un trigger sull'ADC: acquisiremo i dati quando rileviamo un segnale più alto di un valore di trigger, tenendo in memoria anche un numero definito di valori di pretrigger.
 
-\section*{Svolgimento\footnote{Nella repository è il progetto Exp08}}
-Tramite CubeMX impostiamo ADC1 e USART3 come nell'esperimento precedente.
+\section*{Svolgimento\footnote{\href{https://github.com/fdila/electronics-experimentation/tree/main/Exp09}{Il codice è disponibile nella repository, cartella Exp09}}}
 
-Inoltre colleghiamo l'ADC al DMA e l'UART al DMA: in particolare avremo il DMA2 Stream 0 collegato all'ADC1 e il DMA1 Stream 3 collegato ad USART3.
+Per questo esperimento andremo ad utilizzare le periferiche ADC, TIM, USART e DMA impostate come in precedenza.
+L'unica differenza è che useremo il DMA in modalità circolare: in questo modo possiamo acquisire in loop i dati e quando arriviamo alla fine del buffer il DMA torna in modo automatico all'inizio del buffer e inizia a sovrascrivere i dati vecchi.
+In questo modo possiamo implementare un'acquisizione con l'ADC in modo da avere il numero di campioni desiderati incluso una parte del buffer di pretrigger.
 
-Impostiamo TIM2 per generare un update a $1\si{MHz}$:
-\begin{displaymath}
- 1 \si{MHz} = \frac{84\si{MHz}}{(84)}
-\end{displaymath}
-
-Questa frequenza di campionamento è stata scelta in quanto il nostro ADC è limitato ad una frequenza massima di $1.4\si{MHz}$:
-\begin{itemize}
-    \item Il clock source dell'ADC è $84\si{MHz}$
-    \item Il minimo valore di prescaler impostabile per l'ADC è 4, quindi il clock in ingresso all'ADC è $84 \si{MHz} / 4 = 21 \si{MHz}$
-    \item L'ADC impiega 15 cicli di clock per effettuare una conversione quindi la frequenza massima è $21 \si{MHz} / 15 = 1.4 \si{MHz}$
-\end{itemize}
-
-Effettuiamo il setup di ADC e USART come visto nello scorso esperimento.
-Inoltre abilitiamo il bit per abilitare le richieste DMA.
+Innanzitutto impostiamo le periferiche e iniziamo l'acquisizione dei dati.
 
 \begin{minted}
 [
@@ -31,22 +19,32 @@ framesep=2mm,
 baselinestretch=1.2,
 fontsize=\footnotesize,
 ]{C}
-//Turn on DMA mode
-ADC1->CR2 |= ADC_CR2_DMA;
+/* Setup ADC */
 
-//Turn on DMA on transmission
-USART3->CR3 |= USART_CR3_DMAT;
-\end{minted}
-
-Andiamo poi a fare il setup dei due DMA
-\begin{minted}
-[
-frame=lines,
-framesep=2mm,
-baselinestretch=1.2,
-fontsize=\footnotesize,
-]{C}
-/* setup DMA2 stream 0 - ADC */
+	//Select 1 conversions for each sequence
+	ADC1->SQR1 = 0;
+	//Select channel 5 (PA5)
+	ADC1->SQR3 = 0x0;
+	ADC1->SQR3 |= ADC_SQR3_SQ1_0;
+	ADC1->SQR3 |= ADC_SQR3_SQ1_2;
+	//Set EOC flag at the end of each conversion
+	ADC1->CR2 |= ADC_CR2_EOCS;
+	//Disable ADC end of conversion interrupt
+	ADC1->CR1 &= ~ADC_CR1_EOCIE;
+	//Turn on scan mode
+	ADC1->CR1 |= ADC_CR1_SCAN;
+	//Turn on DMA mode!!
+	ADC1->CR2 |= ADC_CR2_DMA;
+	
+	/* Setup UART */
+	//Enable UART and RX interrupt
+	USART3->CR1 |= USART_CR1_UE;
+	USART3->CR1 &= ~USART_CR1_TCIE;
+	USART3->CR1 |= USART_CR1_RXNEIE;
+	//Turn on DMA on transmission
+	USART3->CR3 |= USART_CR3_DMAT;
+	
+	/* setup DMA2 stream 0 - ADC */
 	//set number of elements
 	DMA2_Stream0->NDTR = SIZE;
 	//set source peripheral address
@@ -58,14 +56,17 @@ fontsize=\footnotesize,
 	//set half word peripheral size
 	DMA2_Stream0->CR |= DMA_SxCR_PSIZE_0;
 	//enable transfer complete interrupt
-	DMA2_Stream0->CR |= DMA_SxCR_TCIE;
+	//DMA2_Stream0->CR |= DMA_SxCR_TCIE;
+	//disable transfer complete interrupt
+	DMA2_Stream0->CR &= ~DMA_SxCR_TCIE;
+	//enable circ mode
+	DMA2_Stream0->CR |= DMA_SxCR_CIRC;
 	
-	
-  /* Setup DMA1 UART */
+	/* Setup DMA1 UART */
 	//Disable DMA
 	DMA1_Stream3->CR &= ~DMA_SxCR_EN;
 	//set number of elements (multiply by 2 because we send bytes)
-	DMA1_Stream3->NDTR = SIZE*2;
+	DMA1_Stream3->NDTR = SIZE*2 + 2;
 	//set source memory address
 	DMA1_Stream3->M0AR = (uint32_t) buffer;
 	//set destination peripheral address
@@ -78,9 +79,38 @@ fontsize=\footnotesize,
 	DMA1_Stream3->CR &= ~DMA_SxCR_PSIZE_1;
 	//enable transfer complete interrupt
 	DMA1_Stream3->CR |= DMA_SxCR_TCIE;
+
+	
+	//Turn on ADC
+	ADC1->CR2 |= ADC_CR2_ADON;
+	//reset ADC SR
+	ADC1->SR = 0x0;
+	//Set number of elements
+	DMA2_Stream0->NDTR = SIZE;
+	//Enable DMA2 
+	DMA2_Stream0->CR |= DMA_SxCR_EN;
+	//Enable ADC DMA bit
+	ADC1->CR2 |= ADC_CR2_DMA;
+	ADC1->CR2 |= ADC_CR2_DDS;
+	//Enable TTM2 (start ADC conversion)
+	TIM2->CR1 |= TIM_CR1_CEN;
 \end{minted}
 
-Andiamo poi ad abilitare il DMA2 (quello collegato all'ADC) e il TIM2 per far partire le conversioni
+Abbiamo un buffer di una lunghezza SIZE predefinita.
+Abbiamo inoltre una lunghezza predefinita di PRETRIGGER.
+
+Quando riceviamo il byte '10', ovvero una richiesta di dati da parte di MATLAB andiamo ad abilitare l'interrupt EOC dell'ADC.
+
+Nella routine di questo interrupt andiamo a controllare se il valore appena convertito dall'ADC è superiore alla soglia di trigger da noi voluta.
+In quel caso andiamo a memorizzare l'indice al quale ci troviamo nel buffer. 
+Andiamo poi ad acquisire altri $SIZE - PRETRIGGER $ dati.
+Distinguiamo due casi:
+\begin{itemize}
+    \item L'indice del trigger è maggiore del numero di PRETRIGGER
+    \item L'indice del trigger è minore del numero di PRETRIGGER
+\end{itemize}
+A seconda del caso in cui ci troviamo andiamo a calcolare qual è il valore di NDTR che dobbiamo far raggiungere al DMA prima di interrompere l'acquisizione e inviare i dati.
+
 \begin{minted}
 [
 frame=lines,
@@ -88,62 +118,73 @@ framesep=2mm,
 baselinestretch=1.2,
 fontsize=\footnotesize,
 ]{C}
-//Enable DMA2 
-DMA2_Stream0->CR |= DMA_SxCR_EN;
-//Enable TTM2 (start ADC conversion)
-TIM2->CR1 |= TIM_CR1_CEN;
-\end{minted}
-
-Quando il DMA2 avrà riempito tutto il buffer verrà sollevato un interrupt.
-Nella routine di questo interrupt andiamo a disabilitare il TIM2 e accendiamo il DMA1 per far partire la trasmissione dei dati con la seriale.
-\begin{minted}
-[
-frame=lines,
-framesep=2mm,
-baselinestretch=1.2,
-fontsize=\footnotesize,
-]{C}
-void DMA2_Stream0_IRQHandler(void)
+void ADC_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
+  /* USER CODE BEGIN ADC_IRQn 0 */
+	trigger_val = ADC1->DR;
+	if(trigger_val > 1200 && data_ok == 0){
+		trigger_buffer_index = SIZE - DMA2_Stream0->NDTR + 1;			
+		if (trigger_buffer_index > PRETRIGGER){
 
-	//stop TIM2
-	TIM2->CR1 &= ~TIM_CR1_CEN;
-	
-	//Clear TC bit
-	USART3->SR &= ~USART_SR_TC;
-	
-	//enable DMA1 (UART)
-	DMA1_Stream3->CR |= DMA_SxCR_EN;
-	
-  /* USER CODE END DMA2_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
-  /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
-
-  /* USER CODE END DMA2_Stream0_IRQn 1 */
+			stop_ndtr = SIZE - (trigger_buffer_index - PRETRIGGER);
+			//indice da mandare a matlab per inizio dei dati da plottare
+			buffer[SIZE] = trigger_buffer_index - PRETRIGGER;
+		} else{
+			stop_ndtr = SIZE - (SIZE - (PRETRIGGER-trigger_buffer_index));
+			buffer[SIZE] =  SIZE - (PRETRIGGER-trigger_buffer_index);
+		}
+		data_ok = 1;
+	} else if (data_ok == 1){
+		if (DMA2_Stream0->NDTR == stop_ndtr){
+			//stop ADC and DMA
+			//disable adc interrupt
+			ADC1->CR1 &= ~ADC_CR1_EOCIE;
+			//disable tim2
+			TIM2->CR1 &= ~TIM_CR1_CEN;
+			//reset timer
+			TIM2->CNT = 0x0;
+			TIM2->SR = 0x0;
+			//disable ADC DMA bit
+			ADC1->CR2 &= ~ADC_CR2_DDS;
+			ADC1->CR2 &= ~ADC_CR2_DMA;
+			//disable DMA2
+			DMA2_Stream0->CR &= ~DMA_SxCR_EN;
+			//Reset DMA2 SR
+			DMA2->LIFCR |= DMA_LIFCR_CTCIF0;
+			DMA2->LIFCR |= DMA_LIFCR_CHTIF0;
+			DMA2->LIFCR |= DMA_LIFCR_CTEIF0;
+			//enable Transmission
+			DMA1_Stream3->M0AR = (uint32_t) buffer;
+			//Clear USART TC bit
+			USART3->SR &= ~USART_SR_TC;
+			//enable DMA1 (UART)
+			DMA1_Stream3->CR |= DMA_SxCR_EN;
+			stop_ndtr = 0;
+			data_ok = 0;
+			trigger_val = 0;
+		}
+	}
+  /* USER CODE END ADC_IRQn 0 */
 }
 \end{minted}
 
-Quando la trasmissione seriale finirà verrà sollevato un altro interrupt.
 
-\section*{Esperimento e risultati}
-Proviamo ad acquisire un'onda sin che ha una frequenza di 2kHz.
-Tenendo in memoria 2000 campioni e campionando a $1 \si{MHz}$ riusciamo a vedere un periodo totale di: 
 
-\begin{displaymath}
- \frac {1}{1 \si{MHz}} * 2000 = 1000 \si{ns} * 2000 = 2000000 \si{ns} = 2 \si{ms}
-\end{displaymath}
 
-Possiamo calcolare anche quanti cicli compie la sinusode:
+Dopo aver finito l'acquisizione invieremo a MATLAB l'array dei dati convertiti e inoltre invieremo come ultimo elemento l'indice nel buffer al quale abbiamo rilevato il trigger.
 
-\begin{displaymath}
- \frac{2 \si{ms}}{\frac {1}{2 \si{kHz}}}  = \frac{2 \si{ms}}{0.5\si{ms}} = 4
-\end{displaymath}
+In MATLAB andremo poi a fare il plot dei dati sfruttando l'indice inviato dal microcontrollore.
 
-In 2ms la nostra sinusoide fa 4 cicli, ovvero ha circa 8 picchi, come possiamo vedere nell'immagine.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{assets/exp6/onda_2kHz_8picchi.png}
-\caption{Plot dei dati ricevuti}
-\end{figure}
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{MATLAB}
+function plotUART(data)
+    index = data(1001);
+    new_data = [data(index:1000), data(1:(index-1))];
+    plot(new_data);
+end
+\end{minted}

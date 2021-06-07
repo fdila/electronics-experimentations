@@ -1,23 +1,35 @@
-\chapter*{Esperimento 5: Lettura e plot di un'onda con ADC}
-\addcontentsline{toc}{chapter}{Esperimento 5: Lettura e plot di un'onda con ADC}
+\chapter{Lettura e plot di un'onda con ADC e DMA}
 
 \section*{Obiettivo}
-Leggere un onda generata tramite un generatore di funzioni, trasmettere i valori a MATLAB e plottarli.
+Leggere un onda generata tramite un generatore di funzioni, trasmettere i valori a MATLAB e plottarli usando il DMA sia per l'ADC che per la seriale.
 
-\section*{Svolgimento\footnote{Nella repository è il progetto Exp07}}
-Per acquisire i dati usiamo un convertitore analogico-digitale.
-L'ADC permette di leggere un valore analogico e convertirlo in digitale.
-Tramite CubeMX impostiamo l'ADC per leggere il canale 5 (collegato il pin PA5), e impostiamo la periferica in modo tale che effettui una conversione ogni volta che il TIM2 genera un evento "update".
+\section*{Svolgimento\footnote{\href{https://github.com/fdila/electronics-experimentation/tree/main/Exp08}{Il codice è disponibile nella repository, cartella Exp08}}}
 
-Impostiamo poi il TIM2 per generare un update ad una frequenza di 840khz, seguendo la formula vista in precedenza.
+Tramite CubeMX impostiamo ADC1 e USART3 come nell'esperimento precedente.
 
+Inoltre colleghiamo l'ADC al DMA e l'UART al DMA: in particolare avremo il DMA2 Stream 0 collegato all'ADC1 e il DMA1 Stream 3 collegato ad USART3.
+
+Il DMA (Direct Memory Access) è una particolare periferica che permette di non dover andare a leggere manualmente i registri di un'altra periferica, come ADC e seriale, per scriverne il valore in memoria o viceversa scrivere manualmente dei valori nei registri.
+Ad esempio se vogliamo inviare 10 byte sulla seriale senza DMA dobbiamo impostare la seriale per inviare un byte e quando il byte è stato inviato andare a scrivere il prossimo byte da inviare nel registro DR della seriale, fino a che non finiamo i byte da inviare.
+Con il DMA possiamo invece impostare il puntatore riferito all'indirizzo di memoria del primo byte da inviare e il numero di byte che vogliamo inviare. Dopo aver impostato opportunamente DMA e USART inizierà la comunicazione e non sarà necessario l'intervento della CPU fino a che la trasmissione non sarà finita, permettendoci quindi di avere tempi più brevi per l'invio e di poter utilizzare la CPU per eseguire altre operazioni.
+Allo stesso modo per l'ADC possiamo impostare quanti dati vogliamo acquisire, dare l'indirizzo di base al quale vogliamo memorizzare i dati e fare partire le conversioni.
+
+In entrambi i casi quando sono finiti i byte da trasmettere/acquisire viene generato un interrupt dal DMA per segnalare la fine delle operazioni.
+
+Impostiamo TIM2 per generare un update a $1\si{MHz}$:
 \begin{displaymath}
- 840 \si{kHz} = \frac{84\si{MHz}}{(100)}
+ 1 \si{MHz} = \frac{84\si{MHz}}{(84)}
 \end{displaymath}
 
-Impostiamo inoltre la periferica USART3 per trasmettere i dati acquisiti sulla seriale, per poterli visualizzare con MATLAB.
+Questa frequenza di campionamento è stata scelta in quanto il nostro ADC è limitato ad una frequenza massima di $1.4\si{MHz}$:
+\begin{itemize}
+    \item Il clock source dell'ADC è $84\si{MHz}$
+    \item Il minimo valore di prescaler impostabile per l'ADC è 4, quindi il clock in ingresso all'ADC è $84 \si{MHz} / 4 = 21 \si{MHz}$
+    \item L'ADC impiega 15 cicli di clock per effettuare una conversione quindi la frequenza massima è $21 \si{MHz} / 15 = 1.4 \si{MHz}$
+\end{itemize}
 
-Nella fase di setup, prima del while(1), impostiamo le varie periferiche.
+Effettuiamo il setup di ADC e USART come visto nello scorso esperimento.
+Inoltre abilitiamo il bit per abilitare le richieste DMA.
 
 \begin{minted}
 [
@@ -26,197 +38,122 @@ framesep=2mm,
 baselinestretch=1.2,
 fontsize=\footnotesize,
 ]{C}
-//Enable UART and RX interrupt
-USART3->SR = 0x0;
-USART3->CR1 |= USART_CR1_UE;
-USART3->CR1 |= USART_CR1_RXNEIE;
-USART3->CR1 &= ~USART_CR1_TCIE;
+//Turn on DMA mode
+ADC1->CR2 |= ADC_CR2_DMA;
+
+//Turn on DMA on transmission
+USART3->CR3 |= USART_CR3_DMAT;
+\end{minted}
+
+Andiamo poi a fare il setup dei due DMA
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{C}
+/* setup DMA2 stream 0 - ADC */
+	//set number of elements
+	DMA2_Stream0->NDTR = SIZE;
+	//set source peripheral address
+	DMA2_Stream0->PAR = (uint32_t) &ADC1->DR;
+	//set destination memory address
+	DMA2_Stream0->M0AR = (uint32_t) buffer;
+	//set half word memory data size
+	DMA2_Stream0->CR |= DMA_SxCR_MSIZE_0;
+	//set half word peripheral size
+	DMA2_Stream0->CR |= DMA_SxCR_PSIZE_0;
+	//enable transfer complete interrupt
+	DMA2_Stream0->CR |= DMA_SxCR_TCIE;
 	
-//Turn on ADC
-ADC1->CR2 |= ADC_CR2_ADON;
-//Select 1 conversions for each sequence
-ADC1->SQR1 = 0;
-//Select channel 5 (PA5)
-ADC1->SQR3 = 0x0;
-ADC1->SQR3 |= ADC_SQR3_SQ1_0;
-ADC1->SQR3 |= ADC_SQR3_SQ1_2;
-//Turn on scan mode
-ADC1->CR1 |= ADC_CR1_SCAN;
-//Set EOC flag at the end of each conversion
-ADC1->CR2 |= ADC_CR2_EOCS;
-//Enable ADC EOC interrupt
-ADC1->CR1 |= ADC_CR1_EOCIE;
-\end{minted}
-
-Dopo di che aspettiamo che MATLAB invii il codice 10, ovvero che MATLAB richieda i dati.
-
-Quando riceviamo questo byte si entra nell'interrupt di USART3, in cui abilitiamo il TIM2 e quindi facciamo iniziare le conversioni.
-
-\begin{minted}
-[
-frame=lines,
-framesep=2mm,
-baselinestretch=1.2,
-fontsize=\footnotesize,
-]{C}
-void USART3_IRQHandler(void)
-{
-    uint8_t comando;	
-    if (USART3->SR & USART_SR_RXNE){
-		comando = USART3->DR;
-	}
-  ...
-	if(comando == 10) {
-		//enable adc and timer
-		ADC1->CR2 |= ADC_CR2_ADON;
-		TIM2->CR1 |= TIM_CR1_CEN;
-	}
-}
-\end{minted}
-
-Ogni volta che scatta il timer viene effettuata una conversione e si entra nell'interrupt dell'ADC.
-In questo interrupt andiamo a salvare il dato contenuto in ADC->DR in un buffer e aumentiamo l'indice dell'array.
-Quando arriviamo ad aver acquisito 2000 campioni fermiamo le conversioni e inviamo il contenuto del buffer a MATLAB tramite seriale.
-
-\begin{minted}
-[
-frame=lines,
-framesep=2mm,
-baselinestretch=1.2,
-fontsize=\footnotesize,
-]{C}
-void ADC_IRQHandler(void)
-{
-  /* USER CODE BEGIN ADC_IRQn 0 */
-	if(adc_index < 2000){
-		buffer[adc_index] = ADC1->DR;;
-		++adc_index;
-		if (adc_index == 2000){
-			
-			//disable timer
-			TIM2->CR1 &= ~TIM_CR1_CEN;
-			//disable adc
-			ADC1->CR2 &= ~ADC_CR2_ADON;
-			
-			//reset timer
-			TIM2->CNT = 0x0;
-			TIM2->SR = 0x0;
-			
-			//reset buffer index
-			adc_index = 0;
-			
-			//start transmission
-			USART3->CR1 |= USART_CR1_TXEIE;
-		}
-	}
-
-  /* USER CODE END ADC_IRQn 0 */
-  HAL_ADC_IRQHandler(&hadc1);
-  /* USER CODE BEGIN ADC_IRQn 1 */
-
-  /* USER CODE END ADC_IRQn 1 */
-}
-\end{minted}
-
-\begin{minted}
-[
-frame=lines,
-framesep=2mm,
-baselinestretch=1.2,
-fontsize=\footnotesize,
-]{C}
-void USART3_IRQHandler(void)
-{
-    if ((USART3->SR & USART_SR_TXE)){
-		tx_fun(buffer, 2000);
-	}
-}
-\end{minted}
-
-\begin{minted}
-[
-frame=lines,
-framesep=2mm,
-baselinestretch=1.2,
-fontsize=\footnotesize,
-]{C}
-uint8_t tx_fun(volatile uint16_t* tx_buffer, uint16_t tx_length){
 	
-	tx_length = tx_length*2;
-	uint8_t* pointer = (uint8_t*) tx_buffer;
-	uint8_t to_tx = *(pointer + tx_index);
-	uint8_t is_finished = 0;
-	
-	if(tx_index < tx_length){
-			USART3->DR = to_tx;
-			tx_index++;
-	} else {
-		tx_index = 0;
-		USART3->CR1 &= ~USART_CR1_TXEIE;
-		is_finished = 1;
-	}
-		
-	return is_finished;
-}
+  /* Setup DMA1 UART */
+	//Disable DMA
+	DMA1_Stream3->CR &= ~DMA_SxCR_EN;
+	//set number of elements (multiply by 2 because we send bytes)
+	DMA1_Stream3->NDTR = SIZE*2;
+	//set source memory address
+	DMA1_Stream3->M0AR = (uint32_t) buffer;
+	//set destination peripheral address
+	DMA1_Stream3->PAR = (uint32_t) &USART3->DR;
+	//set byte memory data size
+	DMA1_Stream3->CR &= ~DMA_SxCR_MSIZE_0;
+	DMA1_Stream3->CR &= ~DMA_SxCR_MSIZE_1;
+	//set byte peripheral size
+	DMA1_Stream3->CR &= ~DMA_SxCR_PSIZE_0;
+	DMA1_Stream3->CR &= ~DMA_SxCR_PSIZE_1;
+	//enable transfer complete interrupt
+	DMA1_Stream3->CR |= DMA_SxCR_TCIE;
 \end{minted}
 
-Lato MATLAB abbiamo una funzione che prende in input il numero di dati che si vogliono leggere dalla seriale e il tipo di questi dati. Quando la funzione viene chiamata invia il byte '10' e resta in attesa di ricevere i dati, li converte e restituisce l'array.
-
+Andiamo poi ad abilitare il DMA2 (quello collegato all'ADC) e il TIM2 per far partire le conversioni
 \begin{minted}
 [
 frame=lines,
 framesep=2mm,
 baselinestretch=1.2,
 fontsize=\footnotesize,
-]{MATLAB}
-function data = testUART(size, type)
-
-function readSerial(src, ~)
-    data = read(src,size,type);
-end
-
-device = serialport("COM4",115200);
-flush(device);
-data = [];
-
-if (strcmp(type,'uint16'))
-    bytes = 2*size;
-elseif (strcmp(type, 'uint32'))
-    bytes = 4*size;
-elseif (strcmp(type, 'uint8'))
-    bytes = 1*size;
-end
-
-configureCallback(device,"byte",bytes,@readSerial);
-write(device,10,"uint8");
-
-while (numel(data) < size)
-     pause(0.01);
-end
-
-delete(device);
-
-end
+]{C}
+//Enable DMA2 
+DMA2_Stream0->CR |= DMA_SxCR_EN;
+//Enable TTM2 (start ADC conversion)
+TIM2->CR1 |= TIM_CR1_CEN;
 \end{minted}
+
+Quando il DMA2 avrà riempito tutto il buffer verrà sollevato un interrupt.
+Nella routine di questo interrupt andiamo a disabilitare il TIM2 e accendiamo il DMA1 per far partire la trasmissione dei dati con la seriale.
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+fontsize=\footnotesize,
+]{C}
+void DMA2_Stream0_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
+
+	//stop TIM2
+	TIM2->CR1 &= ~TIM_CR1_CEN;
+	
+	//Clear TC bit
+	USART3->SR &= ~USART_SR_TC;
+	
+	//enable DMA1 (UART)
+	DMA1_Stream3->CR |= DMA_SxCR_EN;
+	
+  /* USER CODE END DMA2_Stream0_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_adc1);
+  /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
+
+  /* USER CODE END DMA2_Stream0_IRQn 1 */
+}
+\end{minted}
+
+Quando la trasmissione seriale finirà verrà sollevato un altro interrupt.
+
+Come per l'esperimento precedente l'acquisizione e invio dei dati sul microcontrollore viene effettuato quando riceviamo sulla seriale il byte '10'.
+Dopo la ricezione dei dati possiamo inviare una nuova richiesta da MATLAB.
 
 \section*{Esperimento e risultati}
 Proviamo ad acquisire un'onda sin che ha una frequenza di 2kHz.
-Tenendo in memoria 2000 campioni e campionando a 840kHz riusciamo a vedere un periodo totale di: 
+Tenendo in memoria 2000 campioni e campionando a $1 \si{MHz}$ riusciamo a vedere un periodo totale di: 
 
 \begin{displaymath}
- \frac {1}{840 \si{kHz}} * 2000 \approx 1190 \si{ns} * 2000 \approx 2380000 \si{ns} \approx 2.38 \si{ms}
+ \frac {1}{1 \si{MHz}} * 2000 = 1000 \si{ns} * 2000 = 2000000 \si{ns} = 2 \si{ms}
 \end{displaymath}
 
 Possiamo calcolare anche quanti cicli compie la sinusode:
 
 \begin{displaymath}
- \frac{2.38 \si{ms}}{\frac {1}{2 \si{kHz}}}  = \frac{2.38 \si{ms}}{0.5\si{ms}} = 4.76
+ \frac{2 \si{ms}}{\frac {1}{2 \si{kHz}}}  = \frac{2 \si{ms}}{0.5\si{ms}} = 4
 \end{displaymath}
 
-In 2.38ms la nostra sinusoide fa 4.76 cicli, ovvero ha circa 10 picchi, come possiamo vedere nell'immagine.
+In 2ms la nostra sinusoide fa 4 cicli, ovvero ha circa 8 picchi, come possiamo vedere nell'immagine.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{assets/exp5/onda2khz.png}
+\includegraphics[width=\textwidth]{assets/exp6/onda_2kHz_8picchi.png}
 \caption{Plot dei dati ricevuti}
 \end{figure}

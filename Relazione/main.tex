@@ -33,6 +33,13 @@
 \usepackage{minted}
 \usepackage{siunitx}
 
+\addto\captionsitalian{\renewcommand{\chaptername}{Esperimento}}
+
+
+\usepackage[textwidth=0.6in]{todonotes}
+
+\newcommand{\todoTest}[1]{\todo[color=green!40]{#1}}
+
 
 \begin{document}
 \input{chapters/intestazione}
@@ -41,12 +48,15 @@
 \tableofcontents
 
 
+\input{chapters/Introduzione}
 \input{chapters/Exp1}
 \input{chapters/Exp2}
 \input{chapters/Exp3}
 \input{chapters/Exp4}
 \input{chapters/Exp5}
 \input{chapters/Exp6}
+\input{chapters/Exp7}
+\input{chapters/Exp8}
 
 
 \end{document}

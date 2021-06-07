@@ -1,10 +1,10 @@
-\chapter*{Esperimento 3: Trasmissione con UART}
-\addcontentsline{toc}{chapter}{Esperimento 3: Trasmissione con UART}
+\chapter{Trasmissione con UART}
 
 \section*{Obiettivo}
 Trasmettere un array di numeri utilizzando la seriale e leggere questi numeri utilizzando MATLAB.
 
-\section*{Svolgimento\footnote{Nella repository è il progetto Exp04}}
+\section*{Svolgimento\footnote{\href{https://github.com/fdila/electronics-experimentation/tree/main/Exp04}{Il codice è disponibile nella repository, cartella Exp04}}}
+
 Tramite CubeMX andiamo ad impostare la periferica USART3 per trasmettere e ricevere dati, impostiamo il baudrate a 9600 e abilitiamo l'interrupt associato.
 
 Nella fase di setup abilitiamo la seriale e abilitiamo anche l'interrupt associato alla ricezione di un byte.
@@ -92,3 +92,25 @@ uint8_t tx_fun(void){
 	return to_tx;
 }
 \end{minted}
+
+Da MATLAB apriamo lo strumento \textit{Instrument Control}: da qui possiamo aprire la connessione con la seriale, inviare il byte '10' e ricevere i dati inviati dal microcontrollore.
+
+Possiamo poi andare a vedere con l'oscilloscopio la forma di onda generata dalla seriale.
+
+Possiamo vedere quest'onda sia come segnale "digitale", ovvero vedendo i valori sotto a una certa soglia come 0, e i valori sopra una certa soglia come 1, sia come segnale "analogico" andando a vedere la tensione.
+
+Dal punto di vista digitale possiamo andare a vedere come è fatta la trasmissione di un byte con la seriale:
+di base, quando non si sta trasmettendo/ricevendo il segnale è alto, abbiamo poi un bit di "start" basso, gli 8 bit trasmessi e un bit di stop.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\textwidth]{assets/exp3/SCR02.PNG}
+\caption{Vista "digitale"}
+\end{figure}
+
+Dal punto di vista analogico notiamo che la tensione del segnale non genera un'onda quadra perfetta ma abbiamo comunque un certo tempo in cui il segnale passa da basso ad alto (e  viceversa).
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\textwidth]{assets/exp3/SCR07.PNG}
+\caption{Vista "analogica"}
+\end{figure}
