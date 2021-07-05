@@ -6,8 +6,8 @@ Far lampeggiare un led ad una frequenza stabilita e accendere/spegnere un altro 
 \section*{Svolgimento\footnote{\href{https://github.com/fdila/electronics-experimentation/tree/main/Exp02}{Il codice è disponibile nella repository, cartella Exp02}}}
 
 
-Tramite CubeMX impostiamo il TIM6 con i valori calcolati nell'esperimento precedente per avere una frequenza di 1Hz e abilitiamo l'interrupt associato.
-Dopo di che abilitiamo l'interrupt del TIM6.
+Tramite CubeMX impostiamo il TIM6 con i valori calcolati nell'esperimento precedente per avere una frequenza di 1Hz e abilitiamo l'interrupt associato al timer.
+Dopo di che abilitiamo l'interrupt del TIM6 nel codice.
 
 \begin{minted}
 [
@@ -22,7 +22,7 @@ TIM6->CR1 |= TIM_CR1_CEN;
 TIM6->DIER |= TIM_DIER_UIE;
 \end{minted}
 
-Nella routine di interrupt di TIM6 andiamo ad accendere e spegnere il LED1 utilizzando la periferica GPIO, come visto nell'esperimento precedente.
+Avendo abilitato l'interrupt del timer ogni volta che il registro CNT arriva al valore di ARR verrà chiamata la routine di interrupt. Nella routine di interrupt di TIM6 andiamo ad accendere e spegnere il LED1 utilizzando la periferica GPIO, come visto nell'esperimento precedente.
 
 \begin{minted}
 [

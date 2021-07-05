@@ -6,12 +6,12 @@ Leggere un onda generata tramite un generatore di funzioni, trasmettere i valori
 \section*{Svolgimento\footnote{\href{https://github.com/fdila/electronics-experimentation/tree/main/Exp07}{Il codice è disponibile nella repository, cartella Exp07}}}
 
 Per acquisire i dati usiamo un convertitore analogico-digitale (ADC): esso permette di leggere un valore analogico e convertirlo in digitale.
-Tramite CubeMX impostiamo l'ADC per leggere il canale 5 (collegato il pin PA5), e impostiamo la periferica in modo tale che effettui una conversione ogni volta che il TIM2 genera un evento "update".
+Tramite CubeMX impostiamo l'ADC per leggere il canale 5 (collegato al pin PA5), e impostiamo la periferica in modo tale che effettui una conversione ogni volta che il TIM2 genera un evento "update".
 
 Impostiamo poi il TIM2 per generare un update ad una frequenza di 840khz, seguendo la formula vista in precedenza.
 
 \begin{displaymath}
- 840 \si{kHz} = \frac{84\si{MHz}}{(100)}
+ 840 \si{kHz} = \frac{84\si{MHz}}{100}
 \end{displaymath}
 
 Impostiamo inoltre la periferica USART3 per trasmettere i dati acquisiti sulla seriale, per poterli visualizzare con MATLAB.

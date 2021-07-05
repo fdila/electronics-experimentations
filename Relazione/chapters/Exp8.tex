@@ -1,7 +1,7 @@
 \chapter{Acquisizione e analisi di dati da SiPM}
 
 \section*{Obiettivi}
-L'obiettivo di questo esperimento è di acquisire le onde generate da un SiPM con il nostro microcontrollore, comunicare i dati a MATLAB e fare un istogramma per visualizzare quanti fotoni vengono rilevati.
+L'obiettivo di questo esperimento finale è di acquisire le onde generate da un SiPM con il nostro microcontrollore, comunicare i dati a MATLAB e fare un istogramma per visualizzare quanti fotoni vengono rilevati.
 
 \section*{Scheda SiPM}
 
@@ -11,9 +11,11 @@ L'obiettivo di questo esperimento è di acquisire le onde generate da un SiPM co
 \caption{Scheda con SiPM e amplificatori}
 \end{figure}
 
-Sulla scheda troviamo innanzitutto il SiPM. Il SiPM è un dispositivo formato da più SPAD, dei diodi fotorilevatori a singolo fotone. Il modello di SiPM usato in questo esperimento è S13360-1350CS
-Al SiPM applichiamo una tensione in inversa Vop, il cui valore è una caratteristica del singolo SiPM. Come riportato in figura questa tensione è 54.2V.
+Sulla scheda troviamo innanzitutto il SiPM. Il SiPM è un dispositivo formato da più SPAD, dei diodi fotorilevatori a singolo fotone. Il modello di SiPM usato in questo esperimento è S13360-1350CS.
 Questo sensore è sensibile ai fotoni, e genera una corrente proporzionale al numero di fotoni rilevati.
+
+
+Al SiPM applichiamo una tensione in inversa Vop, il cui valore è una caratteristica del singolo SiPM. Come riportato in figura questa tensione è 54.2V.
 
 \begin{figure}[H]
 \centering
@@ -21,8 +23,8 @@ Questo sensore è sensibile ai fotoni, e genera una corrente proporzionale al nu
 \caption{SiPM utilizzato}
 \end{figure}
 
-Vicino al SiPM troviamo un LED: useremo il generatore di funzioni per far illuminare il LED, e rilevare i fotoni emessi.
-Andiamo poi a coprire SiPM e LED con un coperchio, per permettere al SiPM di rilevare unicamente i fotoni del LED.
+Vicino al SiPM troviamo un LED: useremo il generatore di funzioni per applicare una differenza di potenziale ai capi del LED, facendolo quindi illuminare.
+Andiamo poi a coprire SiPM e LED con un coperchio, per permettere al SiPM di rilevare unicamente i fotoni provenienti dal LED.
 
 Prima di poter acquisire il segnale con il nostro microcontrollore è necessario amplificarlo e sagomarlo in modo opportuno.
 
@@ -57,9 +59,9 @@ Notiamo però che è rimasto un offset negativo anche al segnale finale: per que
 
 Tutte le fasi precedenti sono state testate soltanto andando a guardare i "dark counts" generati dal rumore termico, senza far illuminare il LED.
 
-Andiamo quindi infine a generare un'onda con il generatore di funzioni per far illuminare il LED per una frazione di secondo. Il segnale di default è "alto", in questo modo non abbiamo caduta di tensione sul LED, e ogni 2ms viene generato un impulso che dura 200ns in cui il sengale è "basso", in questo modo abbiamo una caduta di tensione sul LED che quindi si illumina.
+Andiamo quindi infine a generare un'onda con il generatore di funzioni per far illuminare il LED per una frazione di secondo. Il segnale di default è "alto", in questo modo non abbiamo caduta di tensione sul LED, e ogni 2ms viene generato un impulso che dura 200ns in cui il sengale è "basso": in questi 200ns modo abbiamo una caduta di tensione sul LED che quindi si illumina.
 
-Possiamo poi andare ad analizzare con l'oscilloscopio, acquisendo più volte le onde, il numero di fotoni rilevati dal SiPM. Ricordando che il SiPM genera una corrente proporzionale al numero di fotoni rilevati possiamo visualizzare un istogramma sull'ampiezza del segnale rilevato: i picchi nell'istogramma corrispondono al numero di fotoni rilevati.
+Possiamo poi andare ad analizzare con l'oscilloscopio, acquisendo più volte le onde, il numero di fotoni rilevati dal SiPM. Ricordando che il SiPM genera una corrente proporzionale al numero di fotoni rilevati, possiamo visualizzare un istogramma sull'ampiezza del segnale rilevato: i picchi nell'istogramma corrispondono al numero di fotoni rilevati.
 
 \begin{figure}[H]
 \centering
@@ -69,7 +71,7 @@ Possiamo poi andare ad analizzare con l'oscilloscopio, acquisendo più volte le 
 
 \section*{MATLAB}
 Per fare un'analisi statistica dei dati come quella fatta dall'oscilloscopio è necessario acquisire più campioni di fila.
-È stato quindi utilizzato il seguente codice MATLAB per richiedere al microcontrollore di acquisire i campioni per un numero arbitrario di volte.
+È stato quindi utilizzato il seguente codice MATLAB per richiedere al microcontrollore di acquisire i campioni per un numero arbitrario di volte. Ad ogni acqusizione salviamo il massimo valore ricevuto, e alla fine delle acquisizioni andiamo a fare un istogramma dei picchi rilevati.
 
 
 \begin{minted}

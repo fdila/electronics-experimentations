@@ -21,12 +21,14 @@ USART3->CR1 |= USART_CR1_UE;
 USART3->CR1 |= USART_CR1_RXNEIE;
 \end{minted}
 
-Quando riceveremo un byte sulla seriale entreremo nell'interrupt.
+Quando riceveremo un byte sulla seriale verrà chiamata la routine di interrupt associata a USART3.
 Controlliamo cosa ha sollevato l'interrupt andando a guardare il registro SR.
 Se siamo entrati nell'interrupt perchè è stato ricevuto un byte andiamo a controllare cosa abbiamo ricevuto.
-Se abbiamo ricevuto un 10 significa, per nostra convenzione, che MATLAB ha richiesto i dati. Andiamo quindi ad abilitare l'interrupt TXE, che viene sollevato ogni volta che il registro DR è vuoto.
+Se abbiamo ricevuto un 10 significa, per nostra convenzione, che MATLAB ha richiesto i dati. 
+
+Andiamo quindi ad abilitare l'interrupt TXE, che viene sollevato ogni volta che il registro DR è vuoto.
 Ogni volta che viene sollevato questo interrupt, se abbiamo ancora dati da trasmettere, andiamo a chiamare la funzione tx\_fun(), che restituisce il byte che dobbiamo inviare.
-Mettiamo questo byte nel registro DR che fa quindi partire la trasmissione.
+Mettiamo questo byte nel registro DR: la scrittura nel registro DR fa quindi partire automaticamente la trasmissione.
 
 \begin{minted}
 [
@@ -82,13 +84,11 @@ uint8_t tx_index = 0;
 uint8_t tx_length = sizeof(tx_buffer);
 
 uint8_t tx_fun(void){
-	
 	uint8_t* pointer = (uint8_t*) tx_buffer;
 	uint8_t to_tx = *(pointer + tx_index);
 	
 	if (tx_index < tx_length)
 		tx_index++;
-	
 	return to_tx;
 }
 \end{minted}

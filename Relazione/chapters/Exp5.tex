@@ -1,7 +1,7 @@
 \chapter{Lettura e plot di un'onda con ADC e DMA}
 
 \section*{Obiettivo}
-Leggere un onda generata tramite un generatore di funzioni, trasmettere i valori a MATLAB e plottarli usando il DMA sia per l'ADC che per la seriale.
+Leggere un onda generata tramite un generatore di funzioni, trasmettere i valori a MATLAB e plottarli sfruttando la tecnica DMA sia per l'ADC che per la seriale.
 
 \section*{Svolgimento\footnote{\href{https://github.com/fdila/electronics-experimentation/tree/main/Exp08}{Il codice è disponibile nella repository, cartella Exp08}}}
 
@@ -18,7 +18,7 @@ In entrambi i casi quando sono finiti i byte da trasmettere/acquisire viene gene
 
 Impostiamo TIM2 per generare un update a $1\si{MHz}$:
 \begin{displaymath}
- 1 \si{MHz} = \frac{84\si{MHz}}{(84)}
+ 1 \si{MHz} = \frac{84\si{MHz}}{84}
 \end{displaymath}
 
 Questa frequenza di campionamento è stata scelta in quanto il nostro ADC è limitato ad una frequenza massima di $1.4\si{MHz}$:
